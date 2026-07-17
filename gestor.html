@@ -145,7 +145,7 @@
             // Report States
             const [reportConfig, setReportConfig] = useState({ 
                 client: '', startDate: '', endDate: '', 
-                leadsManual: 0, cplManual: 0, salesManual: 0, weeklyInvManual: 0, notesManual: '', attachment: null
+                leadsManual: '', cplManual: '', salesManual: '', weeklyInvManual: '', notesManual: '', attachment: null
             });
             const [generatedReport, setGeneratedReport] = useState(null);
             const [isReportSaved, setIsReportSaved] = useState(false);
@@ -452,19 +452,18 @@
                 const handleClientChange = (e) => {
                     const clientId = e.target.value;
                     if (clientId) {
-                        const client = myClients.find(c => c.id === Number(clientId));
                         setReportConfig({
                             ...reportConfig, 
                             client: clientId, 
-                            leadsManual: client.performanceMetrics.leadsGenerated || 0, 
-                            cplManual: client.performanceMetrics.currentCpl || 0, 
-                            salesManual: client.performanceMetrics.salesClosed || 0,
-                            weeklyInvManual: 0,
+                            leadsManual: '', 
+                            cplManual: '', 
+                            salesManual: '',
+                            weeklyInvManual: '',
                             notesManual: '',
                             attachment: null
                         });
                     } else {
-                        setReportConfig({...reportConfig, client: '', leadsManual: 0, cplManual: 0, salesManual: 0, weeklyInvManual: 0, notesManual: '', attachment: null});
+                        setReportConfig({...reportConfig, client: '', leadsManual: '', cplManual: '', salesManual: '', weeklyInvManual: '', notesManual: '', attachment: null});
                     }
                 };
 
