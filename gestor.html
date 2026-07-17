@@ -39,7 +39,7 @@
             LayoutDashboard, Users, TrendingUp, AlertCircle, CheckCircle, 
             Search, Plus, X, Building2, MapPin, Target, DollarSign, 
             Briefcase, Activity, Edit, Calendar, Phone, Info, Flag, Megaphone, FileText, Printer,
-            Globe, Instagram, MessageCircle, FileBadge
+            Globe, Instagram, MessageCircle, FileBadge, Paperclip, Download
         } = LucideIcons;
 
         const mockPerformanceData = [
@@ -146,12 +146,12 @@
             // Report States (Incluindo os novos campos manuais do gestor)
             const [reportConfig, setReportConfig] = useState({ 
                 client: '', startDate: '', endDate: '', 
-                leadsManual: 0, cplManual: 0, salesManual: 0, notesManual: '' 
+                leadsManual: 0, cplManual: 0, salesManual: 0, notesManual: '', attachment: null
             });
             const [generatedReport, setGeneratedReport] = useState(null);
 
             const [logFormData, setLogFormData] = useState({
-                clientId: '', date: new Date().toISOString().split('T')[0], note: ''
+                clientId: '', date: new Date().toISOString().split('T')[0], note: '', attachment: null
             });
 
             // Client Form States
@@ -425,10 +425,11 @@
                             leadsManual: client.performanceMetrics.leadsGenerated || 0, 
                             cplManual: client.performanceMetrics.currentCpl || 0, 
                             salesManual: client.performanceMetrics.salesClosed || 0,
-                            notesManual: ''
+                            notesManual: '',
+                            attachment: null
                         });
                     } else {
-                        setReportConfig({...reportConfig, client: '', leadsManual: 0, cplManual: 0, salesManual: 0, notesManual: ''});
+                        setReportConfig({...reportConfig, client: '', leadsManual: 0, cplManual: 0, salesManual: 0, notesManual: '', attachment: null});
                     }
                 };
 
@@ -443,7 +444,8 @@
                             leads: reportConfig.leadsManual,
                             cpl: reportConfig.cplManual,
                             sales: reportConfig.salesManual,
-                            notes: reportConfig.notesManual
+                            notes: reportConfig.notesManual,
+                            attachment: reportConfig.attachment
                         }
                     });
                 };
@@ -494,6 +496,21 @@
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-600 mb-1">Observações do Gestor</label>
                                         <textarea value={reportConfig.notesManual} onChange={e => setReportConfig({...reportConfig, notesManual: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm min-h-[60px]" placeholder="Ex: Excelente conversão, mas o CPL subiu no Meta Ads devido ao feriado..."></textarea>
+                                    </div>
+                                    <div className="mt-3 flex items-center gap-3">
+                                        <label className="flex items-center gap-2 cursor-pointer bg-white hover:bg-slate-50 text-slate-600 px-3 py-2 rounded-lg text-xs font-semibold transition-colors border border-slate-200 shadow-sm w-max">
+                                            <Paperclip size={14} /> Anexar Arquivo (Print, Mídia...)
+                                            <input type="file" className="hidden" onChange={e => {
+                                                const file = e.target.files[0];
+                                                if(file) setReportConfig({...reportConfig, attachment: { name: file.name, url: URL.createObjectURL(file) }});
+                                            }} />
+                                        </label>
+                                        {reportConfig.attachment && (
+                                            <span className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100">
+                                                {reportConfig.attachment.name}
+                                                <button type="button" onClick={() => setReportConfig({...reportConfig, attachment: null})} className="text-blue-400 hover:text-blue-700"><X size={14}/></button>
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -572,6 +589,21 @@
                                     </div>
                                 )}
                                 
+                                {generatedReport.reportPeriodStats.attachment && (
+                                    <div className="mb-8 bg-slate-50 p-4 rounded-lg border border-slate-200 flex items-center justify-between no-print">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-white rounded-lg border border-slate-200"><Paperclip size={18} className="text-slate-500"/></div>
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">Arquivo Anexado ao Relatório</p>
+                                                <p className="text-sm font-semibold text-blue-600">{generatedReport.reportPeriodStats.attachment.name}</p>
+                                            </div>
+                                        </div>
+                                        <a href={generatedReport.reportPeriodStats.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs font-bold bg-white text-slate-700 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg border border-slate-200 transition-colors shadow-sm">
+                                            <Download size={14}/> Abrir Anexo
+                                        </a>
+                                    </div>
+                                )}
+                                
                                 {generatedReport.campaignLogs && generatedReport.campaignLogs.filter(log => log.date >= reportConfig.startDate && log.date <= reportConfig.endDate).length > 0 && (
                                     <div className="mb-8">
                                         <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Diário de Otimizações (Neste Período)</h3>
@@ -589,7 +621,14 @@
                                                     .map((log, index) => (
                                                     <tr key={log.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                                                         <td className="p-3 text-sm font-semibold text-slate-600 border-b border-slate-100 align-top">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                                                        <td className="p-3 text-sm text-slate-800 border-b border-slate-100">{log.note}</td>
+                                                        <td className="p-3 text-sm text-slate-800 border-b border-slate-100">
+                                                            {log.note}
+                                                            {log.attachment && (
+                                                                <a href={log.attachment.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 bg-slate-100 text-blue-600 hover:bg-blue-50 hover:border-blue-200 text-xs font-semibold rounded-md border border-slate-200 transition-colors w-max no-print block">
+                                                                    <Paperclip size={12}/> {log.attachment.name}
+                                                                </a>
+                                                            )}
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -612,7 +651,7 @@
                     const updatedClients = clients.map(c => {
                         if (c.id === Number(logFormData.clientId)) {
                             const updatedLogs = [...(c.campaignLogs || [])];
-                            updatedLogs.push({ id: Date.now(), date: logFormData.date, note: logFormData.note });
+                            updatedLogs.push({ id: Date.now(), date: logFormData.date, note: logFormData.note, attachment: logFormData.attachment });
                             updatedLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
                             return { ...c, campaignLogs: updatedLogs };
                         }
@@ -621,7 +660,7 @@
 
                     setClients(updatedClients);
                     // Limpa apenas o texto para facilitar múltiplos lançamentos, mantém cliente e data
-                    setLogFormData({ ...logFormData, note: '' }); 
+                    setLogFormData({ ...logFormData, note: '', attachment: null }); 
                 };
 
                 // Agrupar todos os logs do gestor para visualizar a timeline global de trabalho
@@ -651,6 +690,8 @@
                                         <label className="block text-xs font-semibold text-slate-600 mb-1">Data da Ação</label>
                                         <input required type="date" value={logFormData.date} onChange={e => setLogFormData({...logFormData, date: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                     </div>
+                                    <div className="hidden md:block"></div>
+                                    
                                     <div className="md:col-span-3">
                                         <label className="block text-xs font-semibold text-slate-600 mb-1">Ação Realizada</label>
                                         <input required type="text" value={logFormData.note} onChange={e => setLogFormData({...logFormData, note: e.target.value})} placeholder="Ex: Ajuste de lances CBO, pausamos conjuntos com CPL alto, nova landing page..." className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
@@ -659,6 +700,22 @@
                                         <button type="submit" className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg font-bold transition-colors shadow-sm">
                                             <Plus size={18} /> Salvar Log
                                         </button>
+                                    </div>
+
+                                    <div className="md:col-span-4 flex items-center gap-3 mt-[-8px]">
+                                        <label className="flex items-center gap-2 cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border border-slate-200 w-max shadow-sm">
+                                            <Paperclip size={14} /> {logFormData.attachment ? 'Trocar Anexo' : 'Anexar Print / Arquivo'}
+                                            <input type="file" className="hidden" onChange={e => {
+                                                const file = e.target.files[0];
+                                                if(file) setLogFormData({...logFormData, attachment: { name: file.name, url: URL.createObjectURL(file) }});
+                                            }} />
+                                        </label>
+                                        {logFormData.attachment && (
+                                            <span className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
+                                                {logFormData.attachment.name}
+                                                <button type="button" onClick={() => setLogFormData({...logFormData, attachment: null})} className="text-blue-400 hover:text-blue-700"><X size={14}/></button>
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </form>
@@ -681,7 +738,14 @@
                                                 <tr key={`${log.id}-${index}`} className="hover:bg-slate-50/80 transition-colors">
                                                     <td className="p-3 text-sm font-semibold text-slate-500 whitespace-nowrap">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                                                     <td className="p-3 text-sm font-bold text-slate-700">{log.clientName} <span className="text-xs text-slate-400 font-normal block">{log.franchiseId}</span></td>
-                                                    <td className="p-3 text-sm text-slate-600">{log.note}</td>
+                                                    <td className="p-3 text-sm text-slate-600">
+                                                        {log.note}
+                                                        {log.attachment && (
+                                                            <a href={log.attachment.url} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-blue-600 hover:bg-blue-50 hover:border-blue-200 text-[10px] font-bold rounded border border-slate-200 transition-colors">
+                                                                <Paperclip size={10}/> Anexo
+                                                            </a>
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -790,6 +854,11 @@
                                                     <div className="pb-3 flex-1">
                                                         <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
                                                         <p className="text-sm text-slate-700 mt-1.5">{log.note}</p>
+                                                        {log.attachment && (
+                                                            <a href={log.attachment.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 text-blue-600 hover:bg-blue-50 hover:border-blue-200 text-xs font-semibold rounded-lg border border-slate-200 transition-colors w-max shadow-sm">
+                                                                <Paperclip size={14}/> {log.attachment.name}
+                                                            </a>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
