@@ -1158,17 +1158,17 @@
                     {/* Main Content Area */}
                     <main className="flex-1 ml-64 p-8 overflow-y-auto w-full">
                         <div className="max-w-6xl mx-auto">
-                            {activeTab === 'dashboard' && <DashboardView />}
-                            {activeTab === 'clients' && <ClientsView />}
-                            {activeTab === 'team' && <TeamView />}
-                            {activeTab === 'reports' && <ReportsView />}
+                            {activeTab === 'dashboard' && DashboardView()}
+                            {activeTab === 'clients' && ClientsView()}
+                            {activeTab === 'team' && TeamView()}
+                            {activeTab === 'reports' && ReportsView()}
                         </div>
                     </main>
 
                     {/* Render Modals */}
-                    <ClientDetailsModal />
-                    <ClientFormModal />
-                    <TeamFormModal />
+                    {ClientDetailsModal()}
+                    {ClientFormModal()}
+                    {TeamFormModal()}
                 </div>
             );
         }
