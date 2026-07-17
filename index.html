@@ -63,7 +63,7 @@
                 legalResponsible: 'João da Silva',
                 address: 'Av. Madre Leônia Milito, 1500 - Londrina, PR',
                 servicesContracted: ['Gestão de Tráfego', 'Consultoria de Vendas'],
-                investmentDetails: { monthlyGoogle: 3000, monthlyMeta: 7000, pixFrequency: 'Semanal (1x)', pixDays: 'Toda segunda-feira' },
+                investmentDetails: { monthlyGoogle: 3000, monthlyMeta: 7000, pixFrequency: 'Semanal (1x)', pixDays: ['Segunda'] },
                 performanceMetrics: { leadsGoal: 100, leadsGenerated: 45, cplTarget: 30, currentCpl: 33.3, salesClosed: 2 },
                 targeting: {
                     audience: 'Investidores locais, Empresários 30-55 anos',
@@ -85,7 +85,7 @@
                 legalResponsible: 'Dra. Maria Fernanda',
                 address: 'Rua XV de Novembro, 120 - Curitiba, PR',
                 servicesContracted: ['Gestão de Tráfego', 'Social Media'],
-                investmentDetails: { monthlyGoogle: 2500, monthlyMeta: 2500, pixFrequency: 'Semanal (2x)', pixDays: 'Terças e Quintas' },
+                investmentDetails: { monthlyGoogle: 2500, monthlyMeta: 2500, pixFrequency: 'Semanal (2x)', pixDays: ['Terça', 'Quinta'] },
                 performanceMetrics: { leadsGoal: 150, leadsGenerated: 120, cplTarget: 20, currentCpl: 23.3, salesClosed: 15 },
                 targeting: {
                     audience: 'Público geral, classes B e C, interessados em estética e saúde',
@@ -111,7 +111,7 @@
                 awarenessStartDate: '2026-08-15',
                 performanceStartDate: '2026-09-01',
                 servicesContracted: ['Gestão de Tráfego'],
-                investmentDetails: { monthlyGoogle: 2000, monthlyMeta: 5000, pixFrequency: 'Diário', pixDays: 'Todos os dias úteis' },
+                investmentDetails: { monthlyGoogle: 2000, monthlyMeta: 5000, pixFrequency: 'Diário', pixDays: ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'] },
                 performanceMetrics: { leadsGoal: 100, leadsGenerated: 0, cplTarget: 25, currentCpl: 0, salesClosed: 0 },
                 targeting: {
                     audience: 'Proprietários de veículos locais, público 25-50 anos',
@@ -157,7 +157,7 @@
             const [editingClient, setEditingClient] = useState(null);
             const [formData, setFormData] = useState({
                 name: '', franchiseName: '', legalResponsible: '', address: '', cs: '', trafficManager: '',
-                monthlyGoogle: 0, monthlyMeta: 0, pixFrequency: 'Semanal (1x)', pixDays: '', leadsGoal: 0, cplTarget: 0, satisfactionIndex: 'Satisfied',
+                monthlyGoogle: 0, monthlyMeta: 0, pixFrequency: 'Semanal (1x)', pixDays: [], leadsGoal: 0, cplTarget: 0, satisfactionIndex: 'Satisfied',
                 audience: '', region: '', notes: '', storeStatus: 'Aberto', inaugurationDate: '', awarenessStartDate: '', performanceStartDate: '',
                 cnpj: '', website: '', instagram: '', whatsapp: ''
             });
@@ -206,7 +206,7 @@
                         monthlyGoogle: client.investmentDetails.monthlyGoogle,
                         monthlyMeta: client.investmentDetails.monthlyMeta,
                         pixFrequency: client.investmentDetails.pixFrequency || 'Semanal (1x)',
-                        pixDays: client.investmentDetails.pixDays || '',
+                        pixDays: client.investmentDetails.pixDays || [],
                         leadsGoal: client.performanceMetrics.leadsGoal,
                         cplTarget: client.performanceMetrics.cplTarget,
                         satisfactionIndex: client.satisfactionIndex,
@@ -226,7 +226,7 @@
                     setEditingClient(null);
                     setFormData({
                         name: '', franchiseName: '', legalResponsible: '', address: '', cs: '', trafficManager: '',
-                        monthlyGoogle: 0, monthlyMeta: 0, pixFrequency: 'Semanal (1x)', pixDays: '', leadsGoal: 0, cplTarget: 0, satisfactionIndex: 'Satisfied',
+                        monthlyGoogle: 0, monthlyMeta: 0, pixFrequency: 'Semanal (1x)', pixDays: [], leadsGoal: 0, cplTarget: 0, satisfactionIndex: 'Satisfied',
                         audience: '', region: '', notes: '', storeStatus: 'Aberto', inaugurationDate: '', awarenessStartDate: '', performanceStartDate: '',
                         cnpj: '', website: '', instagram: '', whatsapp: ''
                     });
@@ -784,7 +784,7 @@
                                     <div className="mb-6 p-4 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center justify-between">
                                         <div>
                                             <p className="text-xs text-emerald-700 font-semibold uppercase mb-1">Frequência de Repasse (PIX / Saldo)</p>
-                                            <p className="text-sm font-bold text-slate-800">{selectedClient.investmentDetails.pixFrequency} <span className="font-normal text-slate-600">- {selectedClient.investmentDetails.pixDays || 'Dias não especificados'}</span></p>
+                                            <p className="text-sm font-bold text-slate-800">{selectedClient.investmentDetails.pixFrequency} <span className="font-normal text-slate-600">- {selectedClient.investmentDetails.pixDays?.length > 0 ? selectedClient.investmentDetails.pixDays.join(', ') : 'Dias não especificados'}</span></p>
                                         </div>
                                     </div>
 
@@ -915,6 +915,28 @@
 
             const ClientFormModal = () => {
                 if (!isFormOpen) return null;
+
+                const handleDayToggle = (day) => {
+                    setFormData(prev => {
+                        const currentDays = prev.pixDays || [];
+                        if (currentDays.includes(day)) {
+                            return { ...prev, pixDays: currentDays.filter(d => d !== day) };
+                        } else {
+                            return { ...prev, pixDays: [...currentDays, day] };
+                        }
+                    });
+                };
+
+                const weekDays = [
+                    { id: 'Domingo', label: 'Dom' },
+                    { id: 'Segunda', label: 'Seg' },
+                    { id: 'Terça', label: 'Ter' },
+                    { id: 'Quarta', label: 'Qua' },
+                    { id: 'Quinta', label: 'Qui' },
+                    { id: 'Sexta', label: 'Sex' },
+                    { id: 'Sábado', label: 'Sáb' }
+                ];
+
                 return (
                     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 sm:p-6">
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl my-auto flex flex-col max-h-[90vh]">
@@ -998,7 +1020,21 @@
                                                         <option value="Diário">Todo Dia</option>
                                                     </select>
                                                 </div>
-                                                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Dias do PIX</label><input type="text" value={formData.pixDays} onChange={e => setFormData({...formData, pixDays: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Segundas e Quintas" /></div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-600 mb-2">Dias de Envio do PIX</label>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {weekDays.map(day => (
+                                                            <button
+                                                                type="button"
+                                                                key={day.id}
+                                                                onClick={() => handleDayToggle(day.id)}
+                                                                className={`px-2.5 py-1.5 text-xs font-semibold rounded border transition-colors ${formData.pixDays?.includes(day.id) ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}
+                                                            >
+                                                                {day.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div className="space-y-4">
                                                 <div><label className="block text-xs font-semibold text-slate-600 mb-1">Meta de Leads (Volume)</label><input type="number" min="0" value={formData.leadsGoal} onChange={e => setFormData({...formData, leadsGoal: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" /></div>
