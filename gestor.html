@@ -150,6 +150,10 @@
             });
             const [generatedReport, setGeneratedReport] = useState(null);
 
+            const [logFormData, setLogFormData] = useState({
+                clientId: '', date: new Date().toISOString().split('T')[0], note: ''
+            });
+
             // Client Form States
             const [isFormOpen, setIsFormOpen] = useState(false);
             const [editingClient, setEditingClient] = useState(null);
@@ -201,7 +205,7 @@
                         audience: client.targeting?.audience || '', region: client.targeting?.region || '', notes: client.notes || '',
                         storeStatus: client.storeStatus || 'Aberto', inaugurationDate: client.inaugurationDate || '', awarenessStartDate: client.awarenessStartDate || '', performanceStartDate: client.performanceStartDate || '',
                         cnpj: client.cnpj || '', website: client.website || '', instagram: client.instagram || '', whatsapp: client.whatsapp || '',
-                        campaignLogs: client.campaignLogs || [], newLogDate: new Date().toISOString().split('T')[0], newLogText: ''
+                        campaignLogs: client.campaignLogs || []
                     });
                 } else {
                     setEditingClient(null);
@@ -210,7 +214,7 @@
                         monthlyGoogle: 0, monthlyMeta: 0, pixFrequency: 'Semanal (1x)', pixDays: [], leadsGoal: 0, cplTarget: 0, leadsGenerated: 0, currentCpl: 0, salesClosed: 0, satisfactionIndex: 'Satisfied',
                         audience: '', region: '', notes: '', storeStatus: 'Aberto', inaugurationDate: '', awarenessStartDate: '', performanceStartDate: '',
                         cnpj: '', website: '', instagram: '', whatsapp: '',
-                        campaignLogs: [], newLogDate: new Date().toISOString().split('T')[0], newLogText: ''
+                        campaignLogs: []
                     });
                 }
                 setIsFormOpen(true);
@@ -218,12 +222,6 @@
 
             const handleSaveClient = (e) => {
                 e.preventDefault();
-                
-                let updatedLogs = [...(formData.campaignLogs || [])];
-                if (formData.newLogText && formData.newLogText.trim() !== '') {
-                    updatedLogs.push({ id: Date.now(), date: formData.newLogDate, note: formData.newLogText });
-                    updatedLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
-                }
 
                 const newClientData = {
                     companyName: formData.name, franchiseId: formData.franchiseName || `NEW-${Math.floor(Math.random()*1000)}`,
@@ -235,7 +233,7 @@
                         leadsGoal: Number(formData.leadsGoal), cplTarget: Number(formData.cplTarget),
                         leadsGenerated: Number(formData.leadsGenerated), currentCpl: Number(formData.currentCpl), salesClosed: Number(formData.salesClosed)
                     },
-                    targeting: { audience: formData.audience, region: formData.region }, notes: formData.notes, campaignLogs: updatedLogs,
+                    targeting: { audience: formData.audience, region: formData.region }, notes: formData.notes, campaignLogs: formData.campaignLogs,
                     cnpj: formData.cnpj, website: formData.website, instagram: formData.instagram, whatsapp: formData.whatsapp,
                     satisfactionIndex: formData.satisfactionIndex, assignedTeam: { cs: formData.cs, trafficManager: formData.trafficManager },
                     createdAt: editingClient ? clients.find(c => c.id === editingClient).createdAt : new Date().toISOString().split('T')[0]
@@ -606,6 +604,97 @@
                 );
             };
 
+            const LogsView = () => {
+                const handleSaveLog = (e) => {
+                    e.preventDefault();
+                    if (!logFormData.clientId || !logFormData.note.trim()) return;
+
+                    const updatedClients = clients.map(c => {
+                        if (c.id === Number(logFormData.clientId)) {
+                            const updatedLogs = [...(c.campaignLogs || [])];
+                            updatedLogs.push({ id: Date.now(), date: logFormData.date, note: logFormData.note });
+                            updatedLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                            return { ...c, campaignLogs: updatedLogs };
+                        }
+                        return c;
+                    });
+
+                    setClients(updatedClients);
+                    // Limpa apenas o texto para facilitar múltiplos lançamentos, mantém cliente e data
+                    setLogFormData({ ...logFormData, note: '' }); 
+                };
+
+                // Agrupar todos os logs do gestor para visualizar a timeline global de trabalho
+                const allLogs = myClients.flatMap(c => 
+                    (c.campaignLogs || []).map(log => ({ ...log, clientName: c.companyName, franchiseId: c.franchiseId }))
+                ).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                return (
+                    <div className="space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800">Diário de Otimizações (Logs)</h2>
+                            <p className="text-sm text-slate-500 mt-1">Registre de forma rápida as alterações de campanhas, criativos e orçamentos.</p>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <form onSubmit={handleSaveLog} className="space-y-4">
+                                <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2"><Edit size={16} /> Novo Registro Rápido</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Cliente / Conta</label>
+                                        <select required value={logFormData.clientId} onChange={e => setLogFormData({...logFormData, clientId: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium">
+                                            <option value="">Selecione o cliente...</option>
+                                            {myClients.map(c => <option key={c.id} value={c.id}>{c.companyName} {c.franchiseId ? `(${c.franchiseId})` : ''}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Data da Ação</label>
+                                        <input required type="date" value={logFormData.date} onChange={e => setLogFormData({...logFormData, date: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                    <div className="md:col-span-3">
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Ação Realizada</label>
+                                        <input required type="text" value={logFormData.note} onChange={e => setLogFormData({...logFormData, note: e.target.value})} placeholder="Ex: Ajuste de lances CBO, pausamos conjuntos com CPL alto, nova landing page..." className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                    <div className="md:col-span-1 flex items-end">
+                                        <button type="submit" className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg font-bold transition-colors shadow-sm">
+                                            <Plus size={18} /> Salvar Log
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Activity size={16} className="text-slate-500" /> Meu Histórico Recente</h3>
+                            {allLogs.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50 border-b border-slate-200">
+                                                <th className="p-3 text-xs font-bold text-slate-500 uppercase w-32">Data</th>
+                                                <th className="p-3 text-xs font-bold text-slate-500 uppercase w-1/4">Conta</th>
+                                                <th className="p-3 text-xs font-bold text-slate-500 uppercase">Otimização Gravada</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {allLogs.map((log, index) => (
+                                                <tr key={`${log.id}-${index}`} className="hover:bg-slate-50/80 transition-colors">
+                                                    <td className="p-3 text-sm font-semibold text-slate-500 whitespace-nowrap">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                                    <td className="p-3 text-sm font-bold text-slate-700">{log.clientName} <span className="text-xs text-slate-400 font-normal block">{log.franchiseId}</span></td>
+                                                    <td className="p-3 text-sm text-slate-600">{log.note}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-slate-500 text-center py-6">Você ainda não registrou nenhum log de otimização.</p>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
             const renderClientDetailsModal = () => {
                 if (!selectedClient) return null;
                 const finances = calculateFinances(selectedClient.investmentDetails.monthlyGoogle, selectedClient.investmentDetails.monthlyMeta);
@@ -813,32 +902,6 @@
                                     </section>
 
                                     <section>
-                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Activity size={16} className="text-blue-500"/> Registrar Nova Ação ou Otimização (Log)</h3>
-                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                <div>
-                                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Data da Ação</label>
-                                                    <input type="date" value={formData.newLogDate} onChange={e => setFormData({...formData, newLogDate: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
-                                                </div>
-                                                <div className="md:col-span-3">
-                                                    <label className="block text-xs font-semibold text-slate-600 mb-1">O que foi feito? (Ex: Subida de campanha, Novo criativo)</label>
-                                                    <input type="text" value={formData.newLogText} onChange={e => setFormData({...formData, newLogText: e.target.value})} placeholder="Descreva o que você acabou de otimizar para salvar no log da conta..." className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
-                                                </div>
-                                            </div>
-                                            {formData.campaignLogs && formData.campaignLogs.length > 0 && (
-                                                <div className="mt-4 pt-4 border-t border-slate-200">
-                                                    <p className="text-xs font-semibold text-slate-500 mb-2">Últimos registros gravados nesta conta:</p>
-                                                    <ul className="space-y-1.5 max-h-32 overflow-y-auto">
-                                                        {formData.campaignLogs.slice(0, 4).map((log, i) => (
-                                                            <li key={log.id || i} className="text-xs text-slate-600 flex gap-2"><span className="font-bold text-slate-400 bg-white px-1 rounded">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span> {log.note}</li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </section>
-
-                                    <section>
                                         <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Status da Conta</h3>
                                         <div>
                                             <div className="flex gap-4">
@@ -880,6 +943,9 @@
                             <button onClick={() => setActiveTab('reports')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'reports' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
                                 <FileText size={20} /> <span className="font-medium">Meus Relatórios</span>
                             </button>
+                            <button onClick={() => setActiveTab('logs')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'logs' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+                                <Calendar size={20} /> <span className="font-medium">Diário (Logs)</span>
+                            </button>
                         </div>
 
                         <div className="border-t border-slate-800 pt-4 mt-auto">
@@ -900,6 +966,7 @@
                             {activeTab === 'dashboard' && DashboardView()}
                             {activeTab === 'clients' && ClientsView()}
                             {activeTab === 'reports' && ReportsView()}
+                            {activeTab === 'logs' && LogsView()}
                         </div>
                     </main>
 
