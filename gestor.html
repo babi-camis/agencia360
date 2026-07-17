@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Gestor - Agência360</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        /* Oculta o menu lateral e formata a página para impressão A4 do Relatório */
+        @media print {
+            body { background: white !important; }
+            nav, .no-print { display: none !important; }
+            main { margin-left: 0 !important; padding: 0 !important; width: 100% !important; overflow: visible !important; }
+            .print-document { box-shadow: none !important; border: none !important; max-width: 100% !important; margin: 0 !important; }
+            ::-webkit-scrollbar { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'https://esm.sh/recharts@2.12.0?deps=react@18.2.0,react-dom@18.2.0';
+        
+        import * as LucideIcons from 'https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0';
+        const { 
+            LayoutDashboard, Users, TrendingUp, AlertCircle, CheckCircle, 
+            Search, Plus, X, Building2, MapPin, Target, DollarSign, 
+            Briefcase, Activity, Edit, Calendar, Phone, Info, Flag, Megaphone, FileText, Printer,
+            Globe, Instagram, MessageCircle, FileBadge
+        } = LucideIcons;
+
+        const mockPerformanceData = [
+            { name: 'Jan', leads: 400, investimento: 2400 },
+            { name: 'Fev', leads: 300, investimento: 1398 },
+            { name: 'Mar', leads: 200, investimento: 9800 },
+            { name: 'Abr', leads: 278, investimento: 3908 },
+            { name: 'Mai', leads: 189, investimento: 4800 },
+            { name: 'Jun', leads: 239, investimento: 3800 },
+            { name: 'Jul', leads: 349, investimento: 4300 },
+        ];
+
+        const initialClients = [
+            {
+                id: 1,
+                companyName: 'Vaapty Franchising',
+                franchiseId: 'VPTY-001',
+                legalResponsible: 'João da Silva',
+                address: 'Av. Madre Leônia Milito, 1500 - Londrina, PR',
+                servicesContracted: ['Gestão de Tráfego', 'Consultoria de Vendas'],
+                investmentDetails: { monthlyGoogle: 3000, monthlyMeta: 7000, pixFrequency: 'Semanal (1x)', pixDays: ['Segunda'] },
+                performanceMetrics: { leadsGoal: 100, leadsGenerated: 45, cplTarget: 30, currentCpl: 33.3, salesClosed: 2 },
+                targeting: { audience: 'Investidores locais, Empresários 30-55 anos', region: 'Londrina e região metropolitana (Raio 30km)' },
+                notes: 'Foco atual é gerar leads B2B para expansão local.',
+                campaignLogs: [
+                    { id: 1, date: '2026-07-10', note: 'Otimização de lances no Google Ads. Custo estava alto.' },
+                    { id: 2, date: '2026-07-15', note: 'Subimos 3 novos criativos no Meta focados em B2B.' }
+                ],
+                cnpj: '12.345.678/0001-90', website: 'https://vaapty.com.br', instagram: '@vaapty', whatsapp: '(43) 99999-9999',
+                satisfactionIndex: 'Satisfied',
+                assignedTeam: { cs: 'Ana Costa', trafficManager: 'Carlos Mendes' },
+                storeStatus: 'Aberto',
+                createdAt: '2024-01-15'
+            },
+            {
+                id: 3,
+                companyName: 'Academia XYZ',
+                franchiseId: 'XYZ-012',
+                legalResponsible: 'Marcos Paulo',
+                address: 'Av. Brasil, 800 - São Paulo, SP',
+                servicesContracted: ['Gestão de Tráfego'],
+                investmentDetails: { monthlyGoogle: 0, monthlyMeta: 4000, pixFrequency: 'Diário', pixDays: ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'] },
+                performanceMetrics: { leadsGoal: 200, leadsGenerated: 210, cplTarget: 15, currentCpl: 14.2, salesClosed: 40 },
+                targeting: { audience: 'Jovens e adultos 18-40 anos', region: 'São Paulo capital' },
+                notes: '', 
+                campaignLogs: [],
+                cnpj: '', website: '', instagram: '', whatsapp: '',
+                storeStatus: 'Aberto',
+                satisfactionIndex: 'Satisfied',
+                assignedTeam: { cs: 'Ana Costa', trafficManager: 'Carlos Mendes' },
+                createdAt: '2024-03-05'
+            },
+            {
+                id: 4,
+                companyName: 'Vaapty Maringá',
+                franchiseId: 'VPTY-089',
+                legalResponsible: 'Carlos Eduardo',
+                address: 'Av. Tiradentes, 500 - Maringá, PR',
+                storeStatus: 'Em Inauguração',
+                inaugurationDate: '2026-09-15', awarenessStartDate: '2026-08-15', performanceStartDate: '2026-09-01',
+                servicesContracted: ['Gestão de Tráfego'],
+                investmentDetails: { monthlyGoogle: 2000, monthlyMeta: 5000, pixFrequency: 'Diário', pixDays: ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'] },
+                performanceMetrics: { leadsGoal: 100, leadsGenerated: 0, cplTarget: 25, currentCpl: 0, salesClosed: 0 },
+                targeting: { audience: 'Proprietários de veículos', region: 'Maringá e raio 20km' },
+                notes: 'Aquecimento de conta e campanha de reconhecimento 30 dias antes.',
+                campaignLogs: [
+                    { id: 3, date: '2026-07-17', note: 'Setup inicial de contas, pixels criados e tags instaladas.' }
+                ],
+                cnpj: '00.111.222/0001-33', website: 'https://vaapty.com.br/maringa', instagram: '@vaapty.maringa', whatsapp: '(44) 99999-0000',
+                satisfactionIndex: 'Neutral',
+                assignedTeam: { cs: 'Roberto Almeida', trafficManager: 'Carlos Mendes' },
+                createdAt: '2026-07-17'
+            }
+        ];
+
+        // Usuário logado fisicamente neste arquivo (Gestor de Tráfego)
+        const loggedInManager = { 
+            name: 'Carlos Mendes', 
+            role: 'Gestor de Tráfego', 
+            email: 'carlos.mendes@agencia.com',
+            avatar: 'CM'
+        };
+
+        // Lista de equipe apenas para popular os campos "Select"
+        const agencyTeamList = [
+            { id: 1, name: 'Ana Costa', role: 'Customer Success (CS)' },
+            { id: 2, name: 'Carlos Mendes', role: 'Gestor de Tráfego' },
+            { id: 3, name: 'Roberto Almeida', role: 'Customer Success (CS)' },
+            { id: 4, name: 'Felipe Silva', role: 'Gestor de Tráfego' }
+        ];
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [clients, setClients] = useState(initialClients);
+            const [selectedClient, setSelectedClient] = useState(null);
+            const [searchTerm, setSearchTerm] = useState('');
+            
+            // Filtro Blindado: O Gestor só enxerga as próprias contas
+            const myClients = clients.filter(c => 
+                c.assignedTeam.trafficManager === loggedInManager.name || 
+                c.assignedTeam.cs === loggedInManager.name
+            );
+
+            // Report States (Incluindo os novos campos manuais do gestor)
+            const [reportConfig, setReportConfig] = useState({ 
+                client: '', startDate: '', endDate: '', 
+                leadsManual: 0, cplManual: 0, salesManual: 0, notesManual: '' 
+            });
+            const [generatedReport, setGeneratedReport] = useState(null);
+
+            // Client Form States
+            const [isFormOpen, setIsFormOpen] = useState(false);
+            const [editingClient, setEditingClient] = useState(null);
+            const [formData, setFormData] = useState({
+                name: '', franchiseName: '', legalResponsible: '', address: '', cs: '', trafficManager: loggedInManager.name,
+                monthlyGoogle: 0, monthlyMeta: 0, pixFrequency: 'Semanal (1x)', pixDays: [], leadsGoal: 0, cplTarget: 0, leadsGenerated: 0, currentCpl: 0, salesClosed: 0, satisfactionIndex: 'Satisfied',
+                audience: '', region: '', notes: '', storeStatus: 'Aberto', inaugurationDate: '', awarenessStartDate: '', performanceStartDate: '',
+                cnpj: '', website: '', instagram: '', whatsapp: '',
+                campaignLogs: [], newLogDate: new Date().toISOString().split('T')[0], newLogText: ''
+            });
+
+            const getSatisfactionColor = (status) => {
+                switch(status) {
+                    case 'Satisfied': return 'text-emerald-500 bg-emerald-50 border-emerald-200';
+                    case 'Neutral': return 'text-amber-500 bg-amber-50 border-amber-200';
+                    case 'Needs Attention': return 'text-rose-500 bg-rose-50 border-rose-200';
+                    default: return 'text-slate-500 bg-slate-50 border-slate-200';
+                }
+            };
+
+            const SatisfactionBadge = ({ status }) => (
+                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getSatisfactionColor(status)} flex items-center gap-1.5 w-max`}>
+                    {status === 'Satisfied' && <CheckCircle size={14} />}
+                    {status === 'Needs Attention' && <AlertCircle size={14} />}
+                    {status === 'Neutral' && <Activity size={14} />}
+                    {status === 'Satisfied' ? 'Satisfeito' : status === 'Needs Attention' ? 'Atenção Requerida' : 'Neutro'}
+                </span>
+            );
+
+            const calculateFinances = (google, meta) => {
+                const googleNum = Number(google) || 0;
+                const metaNum = Number(meta) || 0;
+                const totalMonthly = googleNum + metaNum;
+                const weeklyGoogle = googleNum / 4;
+                const weeklyMetaGross = metaNum / 4;
+                const weeklyMetaNet = weeklyMetaGross * (1 - 0.1215); 
+                return { totalMonthly, weeklyGoogle, weeklyMetaGross, weeklyMetaNet };
+            };
+
+            const handleOpenForm = (client = null) => {
+                if (client) {
+                    setEditingClient(client.id);
+                    setFormData({
+                        name: client.companyName, franchiseName: client.franchiseId || '', legalResponsible: client.legalResponsible || '', address: client.address || '',
+                        cs: client.assignedTeam.cs, trafficManager: client.assignedTeam.trafficManager,
+                        monthlyGoogle: client.investmentDetails.monthlyGoogle, monthlyMeta: client.investmentDetails.monthlyMeta,
+                        pixFrequency: client.investmentDetails.pixFrequency || 'Semanal (1x)', pixDays: client.investmentDetails.pixDays || [],
+                        leadsGoal: client.performanceMetrics.leadsGoal, cplTarget: client.performanceMetrics.cplTarget, leadsGenerated: client.performanceMetrics.leadsGenerated || 0, currentCpl: client.performanceMetrics.currentCpl || 0, salesClosed: client.performanceMetrics.salesClosed || 0, satisfactionIndex: client.satisfactionIndex,
+                        audience: client.targeting?.audience || '', region: client.targeting?.region || '', notes: client.notes || '',
+                        storeStatus: client.storeStatus || 'Aberto', inaugurationDate: client.inaugurationDate || '', awarenessStartDate: client.awarenessStartDate || '', performanceStartDate: client.performanceStartDate || '',
+                        cnpj: client.cnpj || '', website: client.website || '', instagram: client.instagram || '', whatsapp: client.whatsapp || '',
+                        campaignLogs: client.campaignLogs || [], newLogDate: new Date().toISOString().split('T')[0], newLogText: ''
+                    });
+                } else {
+                    setEditingClient(null);
+                    setFormData({
+                        name: '', franchiseName: '', legalResponsible: '', address: '', cs: '', trafficManager: loggedInManager.name,
+                        monthlyGoogle: 0, monthlyMeta: 0, pixFrequency: 'Semanal (1x)', pixDays: [], leadsGoal: 0, cplTarget: 0, leadsGenerated: 0, currentCpl: 0, salesClosed: 0, satisfactionIndex: 'Satisfied',
+                        audience: '', region: '', notes: '', storeStatus: 'Aberto', inaugurationDate: '', awarenessStartDate: '', performanceStartDate: '',
+                        cnpj: '', website: '', instagram: '', whatsapp: '',
+                        campaignLogs: [], newLogDate: new Date().toISOString().split('T')[0], newLogText: ''
+                    });
+                }
+                setIsFormOpen(true);
+            };
+
+            const handleSaveClient = (e) => {
+                e.preventDefault();
+                
+                let updatedLogs = [...(formData.campaignLogs || [])];
+                if (formData.newLogText && formData.newLogText.trim() !== '') {
+                    updatedLogs.push({ id: Date.now(), date: formData.newLogDate, note: formData.newLogText });
+                    updatedLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                }
+
+                const newClientData = {
+                    companyName: formData.name, franchiseId: formData.franchiseName || `NEW-${Math.floor(Math.random()*1000)}`,
+                    legalResponsible: formData.legalResponsible, address: formData.address,
+                    storeStatus: formData.storeStatus, inaugurationDate: formData.inaugurationDate, awarenessStartDate: formData.awarenessStartDate, performanceStartDate: formData.performanceStartDate,
+                    servicesContracted: ['Gestão de Tráfego'], 
+                    investmentDetails: { monthlyGoogle: Number(formData.monthlyGoogle), monthlyMeta: Number(formData.monthlyMeta), pixFrequency: formData.pixFrequency, pixDays: formData.pixDays },
+                    performanceMetrics: {
+                        leadsGoal: Number(formData.leadsGoal), cplTarget: Number(formData.cplTarget),
+                        leadsGenerated: Number(formData.leadsGenerated), currentCpl: Number(formData.currentCpl), salesClosed: Number(formData.salesClosed)
+                    },
+                    targeting: { audience: formData.audience, region: formData.region }, notes: formData.notes, campaignLogs: updatedLogs,
+                    cnpj: formData.cnpj, website: formData.website, instagram: formData.instagram, whatsapp: formData.whatsapp,
+                    satisfactionIndex: formData.satisfactionIndex, assignedTeam: { cs: formData.cs, trafficManager: formData.trafficManager },
+                    createdAt: editingClient ? clients.find(c => c.id === editingClient).createdAt : new Date().toISOString().split('T')[0]
+                };
+
+                if (editingClient) {
+                    setClients(clients.map(c => c.id === editingClient ? { ...c, ...newClientData } : c));
+                } else {
+                    setClients([...clients, { ...newClientData, id: clients.length + 1 }]);
+                }
+                setIsFormOpen(false);
+            };
+
+            const totalInvestment = myClients.reduce((acc, curr) => acc + curr.investmentDetails.monthlyGoogle + curr.investmentDetails.monthlyMeta, 0);
+            const totalLeads = myClients.reduce((acc, curr) => acc + curr.performanceMetrics.leadsGenerated, 0);
+            const averageCpl = myClients.length ? (myClients.reduce((acc, curr) => acc + curr.performanceMetrics.currentCpl, 0) / myClients.length).toFixed(2) : "0.00";
+            const clientsNeedingAttention = myClients.filter(c => c.satisfactionIndex === 'Needs Attention').length;
+            const activeStores = myClients.filter(c => c.storeStatus === 'Aberto' || !c.storeStatus).length;
+            const inauguratingStores = myClients.filter(c => c.storeStatus === 'Em Inauguração').length;
+
+            const DashboardView = () => (
+                <div className="space-y-6">
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-800">Visão Geral das Minhas Contas</h2>
+                        <p className="text-sm text-slate-500">Acompanhamento consolidado da sua carteira de clientes.</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
+                            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><DollarSign size={24} /></div>
+                            <div><p className="text-sm font-medium text-slate-500">Meu Total Gerenciado</p><h3 className="text-2xl font-bold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalInvestment)}</h3></div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
+                            <div className="p-3 bg-purple-50 text-purple-600 rounded-lg"><Users size={24} /></div>
+                            <div><p className="text-sm font-medium text-slate-500">Leads na Minha Base</p><h3 className="text-2xl font-bold text-slate-800">{totalLeads}</h3></div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
+                            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><Target size={24} /></div>
+                            <div><p className="text-sm font-medium text-slate-500">Meu CPL Médio</p><h3 className="text-2xl font-bold text-slate-800">R$ {averageCpl}</h3></div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
+                            <div className="p-3 bg-rose-50 text-rose-600 rounded-lg"><AlertCircle size={24} /></div>
+                            <div><p className="text-sm font-medium text-slate-500">Contas em Risco</p><h3 className="text-2xl font-bold text-slate-800">{clientsNeedingAttention}</h3></div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
+                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Building2 size={24} /></div>
+                            <div><p className="text-sm font-medium text-slate-500">Minhas Contas Ativas</p><h3 className="text-2xl font-bold text-slate-800">{activeStores}</h3></div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
+                            <div className="p-3 bg-amber-50 text-amber-600 rounded-lg"><Flag size={24} /></div>
+                            <div><p className="text-sm font-medium text-slate-500">Lojas Inaugurando</p><h3 className="text-2xl font-bold text-slate-800">{inauguratingStores}</h3></div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 className="text-lg font-bold text-slate-800 mb-4">Minha Evolução (Invest. vs Leads)</h3>
+                            <div className="h-72">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={mockPerformanceData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
+                                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
+                                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
+                                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}/>
+                                        <Legend />
+                                        <Line yAxisId="left" type="monotone" dataKey="leads" stroke="#8b5cf6" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} name="Leads" />
+                                        <Line yAxisId="right" type="monotone" dataKey="investimento" stroke="#3b82f6" strokeWidth={3} dot={{r: 4}} name="Investimento (R$)" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 className="text-lg font-bold text-slate-800 mb-4">Saúde da Minha Carteira</h3>
+                            <div className="space-y-4">
+                                {['Satisfied', 'Neutral', 'Needs Attention'].map((status) => {
+                                    const count = myClients.filter(c => c.satisfactionIndex === status).length;
+                                    const percent = myClients.length ? (count / myClients.length) * 100 : 0;
+                                    const colors = { 'Satisfied': 'bg-emerald-500', 'Neutral': 'bg-amber-500', 'Needs Attention': 'bg-rose-500' };
+                                    const labels = { 'Satisfied': 'Saudáveis / Satisfeitos', 'Neutral': 'Acompanhamento Necessário', 'Needs Attention': 'Risco de Churn / Críticos' };
+                                    
+                                    return (
+                                        <div key={status}>
+                                            <div className="flex justify-between text-sm mb-1">
+                                                <span className="font-medium text-slate-700">{labels[status]}</span>
+                                                <span className="text-slate-500">{count} contas ({percent.toFixed(0)}%)</span>
+                                            </div>
+                                            <div className="w-full bg-slate-100 rounded-full h-2">
+                                                <div className={`${colors[status]} h-2 rounded-full`} style={{ width: `${percent}%` }}></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const ClientsView = () => (
+                <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800">Minhas Contas</h2>
+                            <p className="text-sm text-slate-500 mt-1">Gerencie estratégias, orçamentos e detalhes dos clientes da sua carteira.</p>
+                        </div>
+                        <button onClick={() => handleOpenForm()} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm">
+                            <Plus size={18} /> Nova Conta
+                        </button>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="p-4 border-b border-slate-200 flex gap-4 bg-slate-50">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <input 
+                                    type="text" placeholder="Buscar nas minhas contas (nome, ID)..." 
+                                    value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Empresa / Franquia</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Squad Alocada</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Orçamento (Mês)</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Saúde da Conta</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {myClients.filter(c => c.companyName.toLowerCase().includes(searchTerm.toLowerCase()) || c.franchiseId.toLowerCase().includes(searchTerm.toLowerCase())).map((client) => (
+                                        <tr key={client.id} className="hover:bg-slate-50/80 transition-colors cursor-pointer" onClick={() => setSelectedClient(client)}>
+                                            <td className="p-4">
+                                                <div className="font-semibold text-slate-800">{client.companyName}</div>
+                                                <div className="text-xs text-slate-500 font-medium">{client.franchiseId || 'Sem ID'}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                {client.storeStatus === 'Em Inauguração' ? (
+                                                    <span className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded flex items-center gap-1 w-max"><Flag size={10}/> EM INAUGURAÇÃO</span>
+                                                ) : (
+                                                    <span className="text-sm text-slate-600">Em Operação</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-xs font-medium text-slate-600 flex items-center gap-1"><span className="bg-blue-100 text-blue-700 px-1.5 rounded text-[10px] font-bold">CS</span> {client.assignedTeam.cs}</span>
+                                                    <span className={`text-xs font-medium flex items-center gap-1 ${client.assignedTeam.trafficManager === loggedInManager.name ? 'text-slate-800 font-bold' : 'text-slate-600'}`}><span className="bg-purple-100 text-purple-700 px-1.5 rounded text-[10px] font-bold">TR</span> {client.assignedTeam.trafficManager}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="text-sm font-semibold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(client.investmentDetails.monthlyGoogle + client.investmentDetails.monthlyMeta)}</div>
+                                                <div className="text-xs text-slate-500">Google + Meta</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <SatisfactionBadge status={client.satisfactionIndex} />
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <button onClick={(e) => { e.stopPropagation(); handleOpenForm(client); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                                    <Edit size={18} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {myClients.length === 0 && (
+                                        <tr><td colSpan="6" className="p-8 text-center text-slate-500">Nenhum cliente associado a você no momento.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const ReportsView = () => {
+                const handleClientChange = (e) => {
+                    const clientId = e.target.value;
+                    if (clientId) {
+                        const client = myClients.find(c => c.id === Number(clientId));
+                        setReportConfig({
+                            ...reportConfig, 
+                            client: clientId, 
+                            leadsManual: client.performanceMetrics.leadsGenerated || 0, 
+                            cplManual: client.performanceMetrics.currentCpl || 0, 
+                            salesManual: client.performanceMetrics.salesClosed || 0,
+                            notesManual: ''
+                        });
+                    } else {
+                        setReportConfig({...reportConfig, client: '', leadsManual: 0, cplManual: 0, salesManual: 0, notesManual: ''});
+                    }
+                };
+
+                const handleGenerateReport = (e) => {
+                    e.preventDefault();
+                    if (!reportConfig.client) return;
+                    const client = myClients.find(c => c.id === Number(reportConfig.client));
+                    
+                    setGeneratedReport({
+                        ...client,
+                        reportPeriodStats: {
+                            leads: reportConfig.leadsManual,
+                            cpl: reportConfig.cplManual,
+                            sales: reportConfig.salesManual,
+                            notes: reportConfig.notesManual
+                        }
+                    });
+                };
+
+                return (
+                    <div className="space-y-6">
+                        <div className="no-print">
+                            <h2 className="text-2xl font-bold text-slate-800">Meus Relatórios de Desempenho</h2>
+                            <p className="text-sm text-slate-500 mt-1">Gere relatórios padronizados das suas contas, inserindo o resultado do fechamento do mês para envio a CS ou Diretoria.</p>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm no-print">
+                            <form onSubmit={handleGenerateReport} className="space-y-5">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Selecione o Cliente</label>
+                                        <select required value={reportConfig.client} onChange={handleClientChange} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium">
+                                            <option value="">Selecione a franquia/empresa...</option>
+                                            {myClients.map(c => <option key={c.id} value={c.id}>{c.companyName} {c.franchiseId ? `(${c.franchiseId})` : ''}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Data Inicial</label>
+                                        <input required type="date" value={reportConfig.startDate} onChange={e => setReportConfig({...reportConfig, startDate: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Data Final</label>
+                                        <input required type="date" value={reportConfig.endDate} onChange={e => setReportConfig({...reportConfig, endDate: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                </div>
+
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <h4 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Resultados Alcançados (Fechamento)</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-600 mb-1">Leads Gerados (Neste Período)</label>
+                                            <input required type="number" min="0" value={reportConfig.leadsManual} onChange={e => setReportConfig({...reportConfig, leadsManual: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-600 mb-1">Custo por Lead - CPL (R$)</label>
+                                            <input required type="number" min="0" step="0.01" value={reportConfig.cplManual} onChange={e => setReportConfig({...reportConfig, cplManual: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-600 mb-1">Vendas Fechadas / Visitas</label>
+                                            <input required type="number" min="0" value={reportConfig.salesManual} onChange={e => setReportConfig({...reportConfig, salesManual: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Observações do Gestor</label>
+                                        <textarea value={reportConfig.notesManual} onChange={e => setReportConfig({...reportConfig, notesManual: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm min-h-[60px]" placeholder="Ex: Excelente conversão, mas o CPL subiu no Meta Ads devido ao feriado..."></textarea>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end pt-2">
+                                    <button type="submit" className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-lg font-bold transition-colors shadow-sm">
+                                        <FileText size={18} /> Gerar Dossiê do Cliente
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        {generatedReport && (
+                            <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-lg max-w-4xl mx-auto print-document mt-8">
+                                <div className="flex justify-between items-start border-b-2 border-slate-800 pb-6 mb-6">
+                                    <div>
+                                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">AGÊNCIA360</h1>
+                                        <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">Relatório de Performance em Tráfego</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <button onClick={() => window.print()} className="no-print mb-2 inline-flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors">
+                                            <Printer size={16} /> Imprimir / Salvar PDF
+                                        </button>
+                                        <p className="text-sm text-slate-600"><strong>Período:</strong> {new Date(reportConfig.startDate + 'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(reportConfig.endDate + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-8 mb-8">
+                                    <div>
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Cliente Alvo</h3>
+                                        <p className="text-xl font-bold text-slate-800">{generatedReport.companyName}</p>
+                                        <p className="text-sm text-slate-600">CNPJ: <strong>{generatedReport.cnpj || 'Não informado'}</strong></p>
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Gestão Responsável</h3>
+                                        <p className="text-sm text-slate-700 flex justify-between"><span>Gestor de Tráfego:</span> <strong>{generatedReport.assignedTeam.trafficManager}</strong></p>
+                                        <p className="text-sm text-slate-700 flex justify-between mt-1"><span>CS de Atendimento:</span> <strong>{generatedReport.assignedTeam.cs}</strong></p>
+                                    </div>
+                                </div>
+                                <div className="mb-8">
+                                    <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Investimento Executado</h3>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center"><p className="text-xs font-bold text-blue-700 uppercase mb-1">Google Ads</p><p className="text-xl font-black text-blue-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyGoogle)}</p></div>
+                                        <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 text-center"><p className="text-xs font-bold text-indigo-700 uppercase mb-1">Meta Ads</p><p className="text-xl font-black text-indigo-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyMeta)}</p></div>
+                                        <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center text-white"><p className="text-xs font-bold text-slate-300 uppercase mb-1">Investimento Total</p><p className="text-xl font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyGoogle + generatedReport.investmentDetails.monthlyMeta)}</p></div>
+                                    </div>
+                                </div>
+                                <div className="mb-8">
+                                    <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Performance do Período</h3>
+                                    <table className="w-full text-left border-collapse">
+                                        <thead><tr className="bg-slate-100"><th className="p-3 text-sm font-bold text-slate-700 border border-slate-200">Indicador</th><th className="p-3 text-sm font-bold text-slate-700 border border-slate-200 text-center">Meta Teto</th><th className="p-3 text-sm font-bold text-slate-700 border border-slate-200 text-center">Resultado Real</th><th className="p-3 text-sm font-bold text-slate-700 border border-slate-200 text-center">Status</th></tr></thead>
+                                        <tbody>
+                                            <tr>
+                                                <td className="p-3 text-sm text-slate-800 border border-slate-200">Volume de Leads</td>
+                                                <td className="p-3 text-sm font-medium text-slate-600 border border-slate-200 text-center">{generatedReport.performanceMetrics.leadsGoal}</td>
+                                                <td className="p-3 text-sm font-bold text-slate-800 border border-slate-200 text-center">{generatedReport.reportPeriodStats.leads}</td>
+                                                <td className="p-3 text-center border border-slate-200">{generatedReport.reportPeriodStats.leads >= generatedReport.performanceMetrics.leadsGoal ? <span className="text-emerald-600 font-bold text-xs bg-emerald-50 px-2 py-1 rounded">Batida</span> : <span className="text-amber-600 font-bold text-xs bg-amber-50 px-2 py-1 rounded">Abaixo</span>}</td>
+                                            </tr>
+                                            <tr className="bg-slate-50">
+                                                <td className="p-3 text-sm text-slate-800 border border-slate-200">Custo Por Lead (CPL)</td>
+                                                <td className="p-3 text-sm font-medium text-slate-600 border border-slate-200 text-center">R$ {generatedReport.performanceMetrics.cplTarget}</td>
+                                                <td className="p-3 text-sm font-bold text-slate-800 border border-slate-200 text-center">R$ {generatedReport.reportPeriodStats.cpl}</td>
+                                                <td className="p-3 text-center border border-slate-200">{generatedReport.reportPeriodStats.cpl <= generatedReport.performanceMetrics.cplTarget ? <span className="text-emerald-600 font-bold text-xs bg-emerald-50 px-2 py-1 rounded">Saudável</span> : <span className="text-rose-600 font-bold text-xs bg-rose-50 px-2 py-1 rounded">Acima</span>}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="p-3 text-sm text-slate-800 border border-slate-200">Vendas Fechadas (CRM)</td>
+                                                <td className="p-3 text-sm font-medium text-slate-600 border border-slate-200 text-center">-</td>
+                                                <td className="p-3 text-sm font-bold text-slate-800 border border-slate-200 text-center">{generatedReport.reportPeriodStats.sales}</td>
+                                                <td className="p-3 text-center border border-slate-200"><span className="text-blue-600 font-bold text-xs bg-blue-50 px-2 py-1 rounded">Registrado</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {generatedReport.reportPeriodStats.notes && (
+                                    <div className="mb-8 bg-yellow-50/80 p-5 rounded-lg border border-yellow-200">
+                                        <h3 className="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-2">Comentários do Gestor</h3>
+                                        <p className="text-sm text-yellow-900">{generatedReport.reportPeriodStats.notes}</p>
+                                    </div>
+                                )}
+                                
+                                {generatedReport.campaignLogs && generatedReport.campaignLogs.filter(log => log.date >= reportConfig.startDate && log.date <= reportConfig.endDate).length > 0 && (
+                                    <div className="mb-8">
+                                        <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Diário de Otimizações (Neste Período)</h3>
+                                        <table className="w-full text-left border-collapse border border-slate-200 rounded-lg overflow-hidden">
+                                            <thead>
+                                                <tr className="bg-slate-100">
+                                                    <th className="p-3 text-sm font-bold text-slate-700 border-b border-slate-200 w-32">Data</th>
+                                                    <th className="p-3 text-sm font-bold text-slate-700 border-b border-slate-200">Otimização Realizada</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {generatedReport.campaignLogs
+                                                    .filter(log => log.date >= reportConfig.startDate && log.date <= reportConfig.endDate)
+                                                    .sort((a, b) => new Date(a.date) - new Date(b.date))
+                                                    .map((log, index) => (
+                                                    <tr key={log.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                                        <td className="p-3 text-sm font-semibold text-slate-600 border-b border-slate-100 align-top">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                                        <td className="p-3 text-sm text-slate-800 border-b border-slate-100">{log.note}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                                
+                                <div className="mt-12 text-center text-xs text-slate-400 border-t border-slate-100 pt-4">Relatório operacional gerado via Agência360.</div>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            const renderClientDetailsModal = () => {
+                if (!selectedClient) return null;
+                const finances = calculateFinances(selectedClient.investmentDetails.monthlyGoogle, selectedClient.investmentDetails.monthlyMeta);
+
+                return (
+                    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-end">
+                        <div className="bg-slate-50 w-full max-w-2xl h-full shadow-2xl overflow-y-auto">
+                            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 p-6 flex justify-between items-start">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h2 className="text-2xl font-bold text-slate-800">{selectedClient.companyName}</h2>
+                                        {selectedClient.franchiseId && <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-md border border-slate-200">{selectedClient.franchiseId}</span>}
+                                        {selectedClient.storeStatus === 'Em Inauguração' && <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md border border-amber-200 flex items-center gap-1"><Flag size={12} /> Em Inauguração</span>}
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm text-slate-500"><span className="flex items-center gap-1"><MapPin size={14} /> {selectedClient.address}</span></div>
+                                </div>
+                                <button onClick={() => setSelectedClient(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"><X size={20} /></button>
+                            </div>
+
+                            <div className="p-6 space-y-6">
+                                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                                    <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2 border-b border-slate-100 pb-2"><DollarSign size={18} className="text-emerald-500" /> Planejamento de Tráfego</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100"><p className="text-xs text-slate-500 font-semibold uppercase mb-1">Mês: Google Ads</p><p className="text-lg font-bold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedClient.investmentDetails.monthlyGoogle)}</p></div>
+                                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100"><p className="text-xs text-slate-500 font-semibold uppercase mb-1">Mês: Meta Ads</p><p className="text-lg font-bold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedClient.investmentDetails.monthlyMeta)}</p></div>
+                                    </div>
+
+                                    <div className="mb-6 p-4 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center justify-between">
+                                        <div><p className="text-xs text-emerald-700 font-semibold uppercase mb-1">Frequência de Repasse (PIX / Saldo)</p><p className="text-sm font-bold text-slate-800">{selectedClient.investmentDetails.pixFrequency} <span className="font-normal text-slate-600">- {selectedClient.investmentDetails.pixDays?.length > 0 ? selectedClient.investmentDetails.pixDays.join(', ') : 'Dias não marcados'}</span></p></div>
+                                    </div>
+
+                                    <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+                                        <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-3">Rateio Semanal Automático</h4>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center text-sm"><span className="text-slate-600">Orçamento Semanal Google:</span><span className="font-semibold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finances.weeklyGoogle)}</span></div>
+                                            <div className="flex justify-between items-center text-sm"><span className="text-slate-600 flex items-center gap-1">Orçamento Semanal Meta Bruto: <Info size={12} className="text-slate-400" /></span><span className="font-semibold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finances.weeklyMetaGross)}</span></div>
+                                            <div className="flex justify-between items-center text-sm pt-2 border-t border-blue-200/50 mt-2"><span className="text-blue-800 font-semibold flex items-center gap-1">Meta Ads Líquido <span className="text-xs text-blue-600 font-normal">(-12,15%)</span></span><span className="font-bold text-blue-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finances.weeklyMetaNet)}</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Informações e Presença Digital</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <h4 className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5"><FileBadge size={14} className="text-slate-500" /> Dados Básicos</h4>
+                                            <p className="text-sm text-slate-600 mb-1"><strong>Resp. Legal:</strong> {selectedClient.legalResponsible}</p>
+                                            <p className="text-sm text-slate-600 mb-1"><strong>CNPJ:</strong> {selectedClient.cnpj || 'Não informado'}</p>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5"><Globe size={14} className="text-indigo-500" /> Links da Empresa</h4>
+                                            <div className="space-y-2">
+                                                <p className="text-sm text-slate-600 flex items-center gap-2"><Globe size={14} className="text-slate-400"/> {selectedClient.website ? <a href={selectedClient.website.startsWith('http') ? selectedClient.website : `https://${selectedClient.website}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Site Oficial</a> : 'Não informado'}</p>
+                                                <p className="text-sm text-slate-600 flex items-center gap-2"><Instagram size={14} className="text-slate-400"/> {selectedClient.instagram ? <a href={`https://instagram.com/${selectedClient.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="text-pink-600 hover:underline">{selectedClient.instagram}</a> : 'Não informado'}</p>
+                                                <p className="text-sm text-slate-600 flex items-center gap-2"><MessageCircle size={14} className="text-slate-400"/> {selectedClient.whatsapp ? <span className="text-emerald-600 font-medium">Pré-vendas: {selectedClient.whatsapp}</span> : 'Não informado'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {selectedClient.storeStatus === 'Em Inauguração' && (
+                                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-5 rounded-xl border border-amber-200 shadow-sm mb-6">
+                                        <h3 className="text-sm font-bold text-amber-800 mb-4 flex items-center gap-2 border-b border-amber-200/50 pb-2"><Flag size={18} className="text-amber-600" /> Cronograma de Inauguração</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="bg-white/60 p-3 rounded-lg border border-amber-100"><p className="text-xs text-amber-700 font-semibold uppercase mb-1 flex items-center gap-1"><Megaphone size={12}/> 1. Branding</p><p className="text-sm font-bold text-slate-800">{selectedClient.awarenessStartDate ? new Date(selectedClient.awarenessStartDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não definida'}</p></div>
+                                            <div className="bg-white/60 p-3 rounded-lg border border-amber-100"><p className="text-xs text-amber-700 font-semibold uppercase mb-1 flex items-center gap-1"><Target size={12}/> 2. Captação</p><p className="text-sm font-bold text-slate-800">{selectedClient.performanceStartDate ? new Date(selectedClient.performanceStartDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não definida'}</p></div>
+                                            <div className="bg-amber-500 p-3 rounded-lg border border-amber-600 text-white shadow-inner"><p className="text-xs text-amber-100 font-semibold uppercase mb-1 flex items-center gap-1"><Calendar size={12}/> Inauguração</p><p className="text-sm font-bold text-white">{selectedClient.inaugurationDate ? new Date(selectedClient.inaugurationDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não definida'}</p></div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Estratégia e Segmentação</h3>
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div><p className="text-xs text-slate-500 uppercase font-semibold mb-1">Público de Interesse (Persona)</p><p className="text-sm text-slate-800">{selectedClient.targeting?.audience || 'Não definido'}</p></div>
+                                            <div><p className="text-xs text-slate-500 uppercase font-semibold mb-1">Região de Atuação (Geo)</p><p className="text-sm text-slate-800">{selectedClient.targeting?.region || 'Não definida'}</p></div>
+                                        </div>
+                                        {selectedClient.notes && (
+                                            <div className="pt-4 border-t border-slate-100"><p className="text-xs text-slate-500 uppercase font-semibold mb-2">Anotações / Restrições do Cliente</p><div className="p-3 bg-yellow-50/50 border border-yellow-100 rounded-lg text-sm text-slate-700">{selectedClient.notes}</div></div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {selectedClient.campaignLogs && selectedClient.campaignLogs.length > 0 && (
+                                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mt-6 mb-6">
+                                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Activity size={16} className="text-blue-500"/> Linha do Tempo: Ações e Otimizações</h3>
+                                        <div className="space-y-4 pl-2">
+                                            {selectedClient.campaignLogs.map((log, i) => (
+                                                <div key={log.id || i} className="flex gap-4 items-start relative before:absolute before:left-[11px] before:top-8 before:bottom-[-20px] before:w-[2px] before:bg-slate-200 last:before:hidden">
+                                                    <div className="w-6 h-6 rounded-full bg-blue-100 border-2 border-white flex-shrink-0 z-10 flex items-center justify-center mt-0.5 shadow-sm"><CheckCircle size={12} className="text-blue-600"/></div>
+                                                    <div className="pb-3 flex-1">
+                                                        <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                                                        <p className="text-sm text-slate-700 mt-1.5">{log.note}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderClientFormModal = () => {
+                if (!isFormOpen) return null;
+                const weekDays = [{ id: 'Domingo', label: 'Dom' }, { id: 'Segunda', label: 'Seg' }, { id: 'Terça', label: 'Ter' }, { id: 'Quarta', label: 'Qua' }, { id: 'Quinta', label: 'Qui' }, { id: 'Sexta', label: 'Sex' }, { id: 'Sábado', label: 'Sáb' }];
+                
+                const handleDayToggle = (day) => {
+                    setFormData(prev => {
+                        const currentDays = prev.pixDays || [];
+                        return { ...prev, pixDays: currentDays.includes(day) ? currentDays.filter(d => d !== day) : [...currentDays, day] };
+                    });
+                };
+
+                return (
+                    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 sm:p-6">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl my-auto flex flex-col max-h-[90vh]">
+                            <div className="flex justify-between items-center p-6 border-b border-slate-200">
+                                <h2 className="text-xl font-bold text-slate-800">{editingClient ? 'Atualizar Conta' : 'Cadastrar Nova Conta'}</h2>
+                                <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"><X size={20} /></button>
+                            </div>
+                            <div className="overflow-y-auto p-6">
+                                <form id="client-form" onSubmit={handleSaveClient} className="space-y-8">
+                                    <section>
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Building2 size={16} className="text-blue-500"/> Informações Básicas</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">Nome da Empresa *</label><input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/></div>
+                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">CNPJ</label><input type="text" value={formData.cnpj} onChange={e => setFormData({...formData, cnpj: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/></div>
+                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">Responsável Legal *</label><input required type="text" value={formData.legalResponsible} onChange={e => setFormData({...formData, legalResponsible: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/></div>
+                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">Endereço Completo</label><input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/></div>
+                                        </div>
+                                    </section>
+                                    
+                                    <section>
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Globe size={16} className="text-indigo-500"/> Presença Digital</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">Link do Site</label><input type="text" value={formData.website} onChange={e => setFormData({...formData, website: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"/></div>
+                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">Instagram</label><input type="text" value={formData.instagram} onChange={e => setFormData({...formData, instagram: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"/></div>
+                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp Pré-Vendas</label><input type="text" value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"/></div>
+                                        </div>
+                                    </section>
+                                    
+                                    <section>
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Flag size={16} className="text-amber-500"/> Operação & Squad</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-600 mb-1">Status da Loja</label>
+                                                <select required value={formData.storeStatus} onChange={e => setFormData({...formData, storeStatus: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"><option value="Aberto">Em Operação</option><option value="Em Inauguração">Em Inauguração</option></select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-600 mb-1">CS da Conta</label>
+                                                <select required value={formData.cs} onChange={e => setFormData({...formData, cs: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"><option value="">Selecionar CS...</option>{agencyTeamList.filter(m => m.role.includes('CS')).map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-600 mb-1">Gestor de Tráfego</label>
+                                                <select required value={formData.trafficManager} onChange={e => setFormData({...formData, trafficManager: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"><option value="">Selecionar Gestor...</option>{agencyTeamList.filter(m => m.role.includes('Tráfego')).map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select>
+                                            </div>
+                                        </div>
+                                        {formData.storeStatus === 'Em Inauguração' && (
+                                            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                                <div><label className="block text-xs font-bold text-amber-800 mb-1">Início (Reconhecimento)</label><input type="date" value={formData.awarenessStartDate} onChange={e => setFormData({...formData, awarenessStartDate: e.target.value})} className="w-full p-2.5 border border-amber-300 rounded-lg outline-none" /></div>
+                                                <div><label className="block text-xs font-bold text-amber-800 mb-1">Início (Captação Leads)</label><input type="date" value={formData.performanceStartDate} onChange={e => setFormData({...formData, performanceStartDate: e.target.value})} className="w-full p-2.5 border border-amber-300 rounded-lg outline-none" /></div>
+                                                <div><label className="block text-xs font-bold text-amber-800 mb-1">Data da Inauguração</label><input type="date" value={formData.inaugurationDate} onChange={e => setFormData({...formData, inaugurationDate: e.target.value})} className="w-full p-2.5 border border-amber-300 rounded-lg outline-none" /></div>
+                                            </div>
+                                        )}
+                                    </section>
+                                    
+                                    <section>
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><DollarSign size={16} className="text-emerald-500"/> Orçamento (Google & Meta)</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-4">
+                                                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Google Ads Mensal (R$)</label><input type="number" min="0" step="100" value={formData.monthlyGoogle} onChange={e => setFormData({...formData, monthlyGoogle: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none" /></div>
+                                                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Meta Ads Mensal (R$)</label><input type="number" min="0" step="100" value={formData.monthlyMeta} onChange={e => setFormData({...formData, monthlyMeta: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none" /></div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Frequência de Envio de PIX</label>
+                                                    <select value={formData.pixFrequency} onChange={e => setFormData({...formData, pixFrequency: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none">
+                                                        <option value="Semanal (1x)">1x na Semana</option><option value="Semanal (2x)">2x na Semana</option><option value="Semanal (3x)">3x na Semana</option><option value="Diário">Todo Dia</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-600 mb-2">Marque os dias de PIX</label>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {weekDays.map(day => (
+                                                            <button type="button" key={day.id} onClick={() => handleDayToggle(day.id)} className={`px-2.5 py-1.5 text-xs font-semibold rounded border transition-colors ${formData.pixDays?.includes(day.id) ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}>{day.label}</button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                    
+                                    <section>
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Target size={16} className="text-rose-500"/> Target e Estratégia</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">Público Alvo (Persona)</label><textarea value={formData.audience} onChange={e => setFormData({...formData, audience: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none min-h-[60px]"></textarea></div>
+                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">Região Geográfica</label><textarea value={formData.region} onChange={e => setFormData({...formData, region: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none min-h-[60px]"></textarea></div>
+                                            <div className="md:col-span-2"><label className="block text-xs font-semibold text-slate-600 mb-1">Observações Operacionais (Gerais)</label><textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none min-h-[60px]"></textarea></div>
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Activity size={16} className="text-blue-500"/> Registrar Nova Ação ou Otimização (Log)</h3>
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Data da Ação</label>
+                                                    <input type="date" value={formData.newLogDate} onChange={e => setFormData({...formData, newLogDate: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
+                                                </div>
+                                                <div className="md:col-span-3">
+                                                    <label className="block text-xs font-semibold text-slate-600 mb-1">O que foi feito? (Ex: Subida de campanha, Novo criativo)</label>
+                                                    <input type="text" value={formData.newLogText} onChange={e => setFormData({...formData, newLogText: e.target.value})} placeholder="Descreva o que você acabou de otimizar para salvar no log da conta..." className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
+                                                </div>
+                                            </div>
+                                            {formData.campaignLogs && formData.campaignLogs.length > 0 && (
+                                                <div className="mt-4 pt-4 border-t border-slate-200">
+                                                    <p className="text-xs font-semibold text-slate-500 mb-2">Últimos registros gravados nesta conta:</p>
+                                                    <ul className="space-y-1.5 max-h-32 overflow-y-auto">
+                                                        {formData.campaignLogs.slice(0, 4).map((log, i) => (
+                                                            <li key={log.id || i} className="text-xs text-slate-600 flex gap-2"><span className="font-bold text-slate-400 bg-white px-1 rounded">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span> {log.note}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Status da Conta</h3>
+                                        <div>
+                                            <div className="flex gap-4">
+                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="satisfaction" value="Satisfied" checked={formData.satisfactionIndex === 'Satisfied'} onChange={(e) => setFormData({...formData, satisfactionIndex: e.target.value})} className="text-emerald-500" /><span className="text-sm font-medium text-slate-700">Satisfeito</span></label>
+                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="satisfaction" value="Neutral" checked={formData.satisfactionIndex === 'Neutral'} onChange={(e) => setFormData({...formData, satisfactionIndex: e.target.value})} className="text-amber-500" /><span className="text-sm font-medium text-slate-700">Neutro (Observar)</span></label>
+                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="satisfaction" value="Needs Attention" checked={formData.satisfactionIndex === 'Needs Attention'} onChange={(e) => setFormData({...formData, satisfactionIndex: e.target.value})} className="text-rose-500" /><span className="text-sm font-medium text-slate-700">Atenção (Risco)</span></label>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </form>
+                            </div>
+                            <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 rounded-b-xl mt-auto">
+                                <button onClick={() => setIsFormOpen(false)} type="button" className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50">Cancelar</button>
+                                <button form="client-form" type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Salvar Dados</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50 flex">
+                    <nav className="w-64 bg-slate-900 text-slate-300 p-4 flex flex-col fixed h-full z-20 no-print">
+                        <div className="flex items-center gap-2 mb-10 px-2 pt-4">
+                            <div className="bg-blue-500 p-2 rounded-lg"><TrendingUp size={24} className="text-white" /></div>
+                            <div>
+                                <h1 className="text-xl font-bold text-white leading-tight">Agência360</h1>
+                                <p className="text-[10px] text-slate-400 uppercase tracking-widest">Painel Operacional</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 flex-1">
+                            <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+                                <LayoutDashboard size={20} /> <span className="font-medium">Meu Dashboard</span>
+                            </button>
+                            <button onClick={() => setActiveTab('clients')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'clients' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+                                <Building2 size={20} /> <span className="font-medium">Minhas Contas</span>
+                            </button>
+                            <button onClick={() => setActiveTab('reports')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'reports' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+                                <FileText size={20} /> <span className="font-medium">Meus Relatórios</span>
+                            </button>
+                        </div>
+
+                        <div className="border-t border-slate-800 pt-4 mt-auto">
+                            <div className="flex items-center gap-3 px-2">
+                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold text-white">
+                                    {loggedInManager.avatar}
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-white">{loggedInManager.name}</p>
+                                    <p className="text-xs text-slate-500">{loggedInManager.role}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="flex-1 ml-64 p-8 overflow-y-auto w-full">
+                        <div className="max-w-6xl mx-auto">
+                            {activeTab === 'dashboard' && DashboardView()}
+                            {activeTab === 'clients' && ClientsView()}
+                            {activeTab === 'reports' && ReportsView()}
+                        </div>
+                    </main>
+
+                    {renderClientDetailsModal()}
+                    {renderClientFormModal()}
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
