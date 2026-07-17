@@ -958,9 +958,18 @@
                                             <div><label className="block text-xs font-semibold text-slate-600 mb-1">Público de Interesse (ICP)</label><textarea value={formData.audience} onChange={e => setFormData({...formData, audience: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none min-h-[60px]"></textarea></div>
                                             <div><label className="block text-xs font-semibold text-slate-600 mb-1">Região de Atuação (Geo Targeting)</label><textarea value={formData.region} onChange={e => setFormData({...formData, region: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none min-h-[60px]"></textarea></div>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
-                                                <div><label className="block text-xs font-bold text-blue-700 mb-1">Obs: Tráfego</label><textarea value={formData.trafficNotes} onChange={e => setFormData({...formData, trafficNotes: e.target.value})} className="w-full p-2.5 border border-blue-200 bg-blue-50/30 rounded-lg outline-none min-h-[80px]" placeholder="Orientações de campanhas, bloqueios..."></textarea></div>
-                                                <div><label className="block text-xs font-bold text-purple-700 mb-1">Obs: CS</label><textarea value={formData.csNotes} onChange={e => setFormData({...formData, csNotes: e.target.value})} className="w-full p-2.5 border border-purple-200 bg-purple-50/30 rounded-lg outline-none min-h-[80px]" placeholder="Preferências, dias de alinhamento..."></textarea></div>
-                                                <div><label className="block text-xs font-bold text-slate-700 mb-1">Obs: Gerais</label><textarea value={formData.generalNotes} onChange={e => setFormData({...formData, generalNotes: e.target.value})} className="w-full p-2.5 border border-slate-300 bg-slate-50 rounded-lg outline-none min-h-[80px]" placeholder="Acessos, links úteis..."></textarea></div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-blue-700 mb-1">Obs: Tráfego</label>
+                                                    <textarea value={formData.trafficNotes} onChange={e => setFormData({...formData, trafficNotes: e.target.value})} className="w-full p-2.5 border border-blue-200 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none min-h-[80px]" placeholder="Orientações de campanhas, bloqueios..."></textarea>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-purple-700 mb-1 flex justify-between items-center">Obs: CS <span className="text-[9px] text-slate-400 font-normal uppercase bg-slate-200 px-1 rounded">Bloqueado</span></label>
+                                                    <textarea readOnly value={formData.csNotes} className="w-full p-2.5 border border-purple-200 bg-slate-100 text-slate-500 rounded-lg outline-none min-h-[80px] cursor-not-allowed" placeholder="Apenas CS pode editar..."></textarea>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-700 mb-1 flex justify-between items-center">Obs: Gerais <span className="text-[9px] text-slate-400 font-normal uppercase bg-slate-200 px-1 rounded">Bloqueado</span></label>
+                                                    <textarea readOnly value={formData.generalNotes} className="w-full p-2.5 border border-slate-300 bg-slate-100 text-slate-500 rounded-lg outline-none min-h-[80px] cursor-not-allowed" placeholder="Apenas Admin/Diretoria pode editar..."></textarea>
+                                                </div>
                                             </div>
                                         </div>
                                     </section>
