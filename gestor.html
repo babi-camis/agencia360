@@ -25,7 +25,7 @@
             ::-webkit-scrollbar { display: none; }
         }
     </style>
-</head>
+</head> 
 <body>
     <div id="root"></div>
 
@@ -123,7 +123,6 @@
             avatar: 'CM'
         };
 
-        // Lista de equipe apenas para popular os campos "Select"
         const agencyTeamList = [
             { id: 1, name: 'Ana Costa', role: 'Customer Success (CS)' },
             { id: 2, name: 'Carlos Mendes', role: 'Gestor de Tráfego' },
@@ -143,13 +142,15 @@
                 c.assignedTeam.cs === loggedInManager.name
             );
 
-            // Report States (Incluindo os novos campos manuais do gestor)
+            // Report States
             const [reportConfig, setReportConfig] = useState({ 
                 client: '', startDate: '', endDate: '', 
                 leadsManual: 0, cplManual: 0, salesManual: 0, notesManual: '', attachment: null
             });
             const [generatedReport, setGeneratedReport] = useState(null);
+            const [isReportSaved, setIsReportSaved] = useState(false);
 
+            // Log states
             const [logFormData, setLogFormData] = useState({
                 clientId: '', date: new Date().toISOString().split('T')[0], note: '', attachment: null
             });
@@ -161,8 +162,7 @@
                 name: '', franchiseName: '', legalResponsible: '', address: '', cs: '', trafficManager: loggedInManager.name,
                 monthlyGoogle: 0, monthlyMeta: 0, pixFrequency: 'Semanal (1x)', pixDays: [], leadsGoal: 0, cplTarget: 0, leadsGenerated: 0, currentCpl: 0, salesClosed: 0, satisfactionIndex: 'Satisfied',
                 audience: '', region: '', notes: '', storeStatus: 'Aberto', inaugurationDate: '', awarenessStartDate: '', performanceStartDate: '',
-                cnpj: '', website: '', instagram: '', whatsapp: '',
-                campaignLogs: [], newLogDate: new Date().toISOString().split('T')[0], newLogText: ''
+                cnpj: '', website: '', instagram: '', whatsapp: ''
             });
 
             const getSatisfactionColor = (status) => {
@@ -193,58 +193,26 @@
                 return { totalMonthly, weeklyGoogle, weeklyMetaGross, weeklyMetaNet };
             };
 
-            const handleOpenForm = (client = null) => {
-                if (client) {
-                    setEditingClient(client.id);
-                    setFormData({
-                        name: client.companyName, franchiseName: client.franchiseId || '', legalResponsible: client.legalResponsible || '', address: client.address || '',
-                        cs: client.assignedTeam.cs, trafficManager: client.assignedTeam.trafficManager,
-                        monthlyGoogle: client.investmentDetails.monthlyGoogle, monthlyMeta: client.investmentDetails.monthlyMeta,
-                        pixFrequency: client.investmentDetails.pixFrequency || 'Semanal (1x)', pixDays: client.investmentDetails.pixDays || [],
-                        leadsGoal: client.performanceMetrics.leadsGoal, cplTarget: client.performanceMetrics.cplTarget, leadsGenerated: client.performanceMetrics.leadsGenerated || 0, currentCpl: client.performanceMetrics.currentCpl || 0, salesClosed: client.performanceMetrics.salesClosed || 0, satisfactionIndex: client.satisfactionIndex,
-                        audience: client.targeting?.audience || '', region: client.targeting?.region || '', notes: client.notes || '',
-                        storeStatus: client.storeStatus || 'Aberto', inaugurationDate: client.inaugurationDate || '', awarenessStartDate: client.awarenessStartDate || '', performanceStartDate: client.performanceStartDate || '',
-                        cnpj: client.cnpj || '', website: client.website || '', instagram: client.instagram || '', whatsapp: client.whatsapp || '',
-                        campaignLogs: client.campaignLogs || []
-                    });
-                } else {
-                    setEditingClient(null);
-                    setFormData({
-                        name: '', franchiseName: '', legalResponsible: '', address: '', cs: '', trafficManager: loggedInManager.name,
-                        monthlyGoogle: 0, monthlyMeta: 0, pixFrequency: 'Semanal (1x)', pixDays: [], leadsGoal: 0, cplTarget: 0, leadsGenerated: 0, currentCpl: 0, salesClosed: 0, satisfactionIndex: 'Satisfied',
-                        audience: '', region: '', notes: '', storeStatus: 'Aberto', inaugurationDate: '', awarenessStartDate: '', performanceStartDate: '',
-                        cnpj: '', website: '', instagram: '', whatsapp: '',
-                        campaignLogs: []
-                    });
-                }
-                setIsFormOpen(true);
-            };
+            const handleViewSavedReport = (client, savedReport) => {
+                setSelectedClient(null); // Fecha modal do cliente se estiver aberto
+                setActiveTab('reports');
+                
+                setReportConfig({
+                    client: client.id.toString(),
+                    startDate: savedReport.startDate,
+                    endDate: savedReport.endDate,
+                    leadsManual: savedReport.stats.leads,
+                    cplManual: savedReport.stats.cpl,
+                    salesManual: savedReport.stats.sales,
+                    notesManual: savedReport.stats.notes,
+                    attachment: savedReport.stats.attachment
+                });
 
-            const handleSaveClient = (e) => {
-                e.preventDefault();
-
-                const newClientData = {
-                    companyName: formData.name, franchiseId: formData.franchiseName || `NEW-${Math.floor(Math.random()*1000)}`,
-                    legalResponsible: formData.legalResponsible, address: formData.address,
-                    storeStatus: formData.storeStatus, inaugurationDate: formData.inaugurationDate, awarenessStartDate: formData.awarenessStartDate, performanceStartDate: formData.performanceStartDate,
-                    servicesContracted: ['Gestão de Tráfego'], 
-                    investmentDetails: { monthlyGoogle: Number(formData.monthlyGoogle), monthlyMeta: Number(formData.monthlyMeta), pixFrequency: formData.pixFrequency, pixDays: formData.pixDays },
-                    performanceMetrics: {
-                        leadsGoal: Number(formData.leadsGoal), cplTarget: Number(formData.cplTarget),
-                        leadsGenerated: Number(formData.leadsGenerated), currentCpl: Number(formData.currentCpl), salesClosed: Number(formData.salesClosed)
-                    },
-                    targeting: { audience: formData.audience, region: formData.region }, notes: formData.notes, campaignLogs: formData.campaignLogs,
-                    cnpj: formData.cnpj, website: formData.website, instagram: formData.instagram, whatsapp: formData.whatsapp,
-                    satisfactionIndex: formData.satisfactionIndex, assignedTeam: { cs: formData.cs, trafficManager: formData.trafficManager },
-                    createdAt: editingClient ? clients.find(c => c.id === editingClient).createdAt : new Date().toISOString().split('T')[0]
-                };
-
-                if (editingClient) {
-                    setClients(clients.map(c => c.id === editingClient ? { ...c, ...newClientData } : c));
-                } else {
-                    setClients([...clients, { ...newClientData, id: clients.length + 1 }]);
-                }
-                setIsFormOpen(false);
+                setGeneratedReport({
+                    ...client,
+                    reportPeriodStats: savedReport.stats
+                });
+                setIsReportSaved(true);
             };
 
             const totalInvestment = myClients.reduce((acc, curr) => acc + curr.investmentDetails.monthlyGoogle + curr.investmentDetails.monthlyMeta, 0);
@@ -333,6 +301,31 @@
                     </div>
                 </div>
             );
+
+            const handleOpenForm = (client = null) => {
+                if (client) {
+                    setEditingClient(client.id);
+                    setFormData({
+                        name: client.companyName, franchiseName: client.franchiseId || '', legalResponsible: client.legalResponsible || '', address: client.address || '',
+                        cs: client.assignedTeam.cs, trafficManager: client.assignedTeam.trafficManager,
+                        monthlyGoogle: client.investmentDetails.monthlyGoogle, monthlyMeta: client.investmentDetails.monthlyMeta,
+                        pixFrequency: client.investmentDetails.pixFrequency || 'Semanal (1x)', pixDays: client.investmentDetails.pixDays || [],
+                        leadsGoal: client.performanceMetrics.leadsGoal, cplTarget: client.performanceMetrics.cplTarget, leadsGenerated: client.performanceMetrics.leadsGenerated || 0, currentCpl: client.performanceMetrics.currentCpl || 0, salesClosed: client.performanceMetrics.salesClosed || 0, satisfactionIndex: client.satisfactionIndex,
+                        audience: client.targeting?.audience || '', region: client.targeting?.region || '', notes: client.notes || '',
+                        storeStatus: client.storeStatus || 'Aberto', inaugurationDate: client.inaugurationDate || '', awarenessStartDate: client.awarenessStartDate || '', performanceStartDate: client.performanceStartDate || '',
+                        cnpj: client.cnpj || '', website: client.website || '', instagram: client.instagram || '', whatsapp: client.whatsapp || ''
+                    });
+                } else {
+                    setEditingClient(null);
+                    setFormData({
+                        name: '', franchiseName: '', legalResponsible: '', address: '', cs: '', trafficManager: loggedInManager.name,
+                        monthlyGoogle: 0, monthlyMeta: 0, pixFrequency: 'Semanal (1x)', pixDays: [], leadsGoal: 0, cplTarget: 0, leadsGenerated: 0, currentCpl: 0, salesClosed: 0, satisfactionIndex: 'Satisfied',
+                        audience: '', region: '', notes: '', storeStatus: 'Aberto', inaugurationDate: '', awarenessStartDate: '', performanceStartDate: '',
+                        cnpj: '', website: '', instagram: '', whatsapp: ''
+                    });
+                }
+                setIsFormOpen(true);
+            };
 
             const ClientsView = () => (
                 <div className="space-y-6">
@@ -433,11 +426,19 @@
                     }
                 };
 
+                const handleAttachment = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        setReportConfig({...reportConfig, attachment: { name: file.name, url: URL.createObjectURL(file) }});
+                    }
+                };
+
                 const handleGenerateReport = (e) => {
                     e.preventDefault();
                     if (!reportConfig.client) return;
                     const client = myClients.find(c => c.id === Number(reportConfig.client));
                     
+                    setIsReportSaved(false);
                     setGeneratedReport({
                         ...client,
                         reportPeriodStats: {
@@ -450,182 +451,207 @@
                     });
                 };
 
+                const saveReportToClient = () => {
+                    const updatedClients = clients.map(c => {
+                        if (c.id === Number(reportConfig.client)) {
+                            const existing = c.savedReports || [];
+                            return { ...c, savedReports: [...existing, {
+                                id: Date.now(),
+                                generatedAt: new Date().toISOString(),
+                                startDate: reportConfig.startDate,
+                                endDate: reportConfig.endDate,
+                                stats: generatedReport.reportPeriodStats
+                            }]};
+                        }
+                        return c;
+                    });
+                    setClients(updatedClients);
+                    setIsReportSaved(true);
+                };
+
+                const periodLogs = generatedReport?.campaignLogs?.filter(log => {
+                    return log.date >= reportConfig.startDate && log.date <= reportConfig.endDate;
+                }) || [];
+
                 return (
                     <div className="space-y-6">
                         <div className="no-print">
-                            <h2 className="text-2xl font-bold text-slate-800">Meus Relatórios de Desempenho</h2>
-                            <p className="text-sm text-slate-500 mt-1">Gere relatórios padronizados das suas contas, inserindo o resultado do fechamento do mês para envio a CS ou Diretoria.</p>
+                            <h2 className="text-2xl font-bold text-slate-800">Gerador de Relatórios</h2>
+                            <p className="text-sm text-slate-500 mt-1">Gere dossiês de fechamento informando os resultados reais alcançados no período.</p>
                         </div>
 
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm no-print">
-                            <form onSubmit={handleGenerateReport} className="space-y-5">
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                    <div className="md:col-span-2">
-                                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Selecione o Cliente</label>
-                                        <select required value={reportConfig.client} onChange={handleClientChange} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium">
-                                            <option value="">Selecione a franquia/empresa...</option>
-                                            {myClients.map(c => <option key={c.id} value={c.id}>{c.companyName} {c.franchiseId ? `(${c.franchiseId})` : ''}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Data Inicial</label>
-                                        <input required type="date" value={reportConfig.startDate} onChange={e => setReportConfig({...reportConfig, startDate: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Data Final</label>
-                                        <input required type="date" value={reportConfig.endDate} onChange={e => setReportConfig({...reportConfig, endDate: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
+                        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm no-print">
+                            <form onSubmit={handleGenerateReport} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Selecione sua Conta</label>
+                                    <select required value={reportConfig.client} onChange={handleClientChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                        <option value="">Selecione...</option>
+                                        {myClients.map(c => <option key={c.id} value={c.id}>{c.companyName} {c.franchiseId ? `(${c.franchiseId})` : ''}</option>)}
+                                    </select>
                                 </div>
-
-                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                    <h4 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Resultados Alcançados (Fechamento)</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                        <div>
-                                            <label className="block text-xs font-semibold text-slate-600 mb-1">Leads Gerados (Neste Período)</label>
-                                            <input required type="number" min="0" value={reportConfig.leadsManual} onChange={e => setReportConfig({...reportConfig, leadsManual: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-slate-600 mb-1">Custo por Lead - CPL (R$)</label>
-                                            <input required type="number" min="0" step="0.01" value={reportConfig.cplManual} onChange={e => setReportConfig({...reportConfig, cplManual: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-slate-600 mb-1">Vendas Fechadas / Visitas</label>
-                                            <input required type="number" min="0" value={reportConfig.salesManual} onChange={e => setReportConfig({...reportConfig, salesManual: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
+                                <div><label className="block text-xs font-medium text-slate-500 mb-1">Data Inicial</label><input required type="date" value={reportConfig.startDate} onChange={e => setReportConfig({...reportConfig, startDate: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" /></div>
+                                <div><label className="block text-xs font-medium text-slate-500 mb-1">Data Final</label><input required type="date" value={reportConfig.endDate} onChange={e => setReportConfig({...reportConfig, endDate: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" /></div>
+                                
+                                {reportConfig.client && (
+                                    <div className="md:col-span-4 bg-slate-50 p-4 rounded-lg border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+                                        <div className="md:col-span-4 border-b border-slate-200 pb-2 mb-2"><h4 className="text-sm font-bold text-slate-800">Lançamento de Resultados (Período)</h4><p className="text-xs text-slate-500">Preencha com os dados reais alcançados nestas datas para compor o relatório.</p></div>
+                                        <div><label className="block text-xs font-bold text-blue-800 mb-1">Total de Leads (Mês)</label><input required type="number" min="0" value={reportConfig.leadsManual} onChange={e => setReportConfig({...reportConfig, leadsManual: e.target.value})} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-inner" /></div>
+                                        <div><label className="block text-xs font-bold text-blue-800 mb-1">CPL Atual (R$)</label><input required type="number" min="0" step="0.01" value={reportConfig.cplManual} onChange={e => setReportConfig({...reportConfig, cplManual: e.target.value})} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-inner" /></div>
+                                        <div><label className="block text-xs font-bold text-blue-800 mb-1">Vendas Fechadas</label><input required type="number" min="0" value={reportConfig.salesManual} onChange={e => setReportConfig({...reportConfig, salesManual: e.target.value})} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-inner" /></div>
+                                        <div className="md:col-span-4"><label className="block text-xs font-bold text-slate-600 mb-1">Observações do Gestor para a Diretoria</label><textarea value={reportConfig.notesManual} onChange={e => setReportConfig({...reportConfig, notesManual: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white min-h-[60px]" placeholder="Justificativas de oscilação, ações tomadas no mês..."></textarea></div>
+                                        <div className="md:col-span-4 flex items-center gap-4 pt-2">
+                                            <div>
+                                                <label className="cursor-pointer inline-flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 rounded-lg transition-colors">
+                                                    <Paperclip size={16}/> {reportConfig.attachment ? 'Alterar Anexo' : 'Anexar Print (Gerenciador/Outros)'}
+                                                    <input type="file" className="hidden" onChange={handleAttachment} accept="image/*,.pdf" />
+                                                </label>
+                                            </div>
+                                            {reportConfig.attachment && (
+                                                <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200 break-all">{reportConfig.attachment.name}</span>
+                                            )}
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Observações do Gestor</label>
-                                        <textarea value={reportConfig.notesManual} onChange={e => setReportConfig({...reportConfig, notesManual: e.target.value})} className="w-full p-2.5 border border-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm min-h-[60px]" placeholder="Ex: Excelente conversão, mas o CPL subiu no Meta Ads devido ao feriado..."></textarea>
-                                    </div>
-                                    <div className="mt-3 flex items-center gap-3">
-                                        <label className="flex items-center gap-2 cursor-pointer bg-white hover:bg-slate-50 text-slate-600 px-3 py-2 rounded-lg text-xs font-semibold transition-colors border border-slate-200 shadow-sm w-max">
-                                            <Paperclip size={14} /> Anexar Arquivo (Print, Mídia...)
-                                            <input type="file" className="hidden" onChange={e => {
-                                                const file = e.target.files[0];
-                                                if(file) setReportConfig({...reportConfig, attachment: { name: file.name, url: URL.createObjectURL(file) }});
-                                            }} />
-                                        </label>
-                                        {reportConfig.attachment && (
-                                            <span className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100">
-                                                {reportConfig.attachment.name}
-                                                <button type="button" onClick={() => setReportConfig({...reportConfig, attachment: null})} className="text-blue-400 hover:text-blue-700"><X size={14}/></button>
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-end pt-2">
-                                    <button type="submit" className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-lg font-bold transition-colors shadow-sm">
-                                        <FileText size={18} /> Gerar Dossiê do Cliente
+                                )}
+                                
+                                <div className="md:col-span-4 flex justify-end mt-4">
+                                    <button type="submit" className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm">
+                                        <FileText size={18} /> Gerar Relatório
                                     </button>
                                 </div>
                             </form>
                         </div>
 
                         {generatedReport && (
-                            <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-lg max-w-4xl mx-auto print-document mt-8">
+                            <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-lg max-w-4xl mx-auto print-document mt-8 relative">
                                 <div className="flex justify-between items-start border-b-2 border-slate-800 pb-6 mb-6">
                                     <div>
                                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">AGÊNCIA360</h1>
                                         <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">Relatório de Performance em Tráfego</p>
                                     </div>
                                     <div className="text-right">
-                                        <button onClick={() => window.print()} className="no-print mb-2 inline-flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors">
-                                            <Printer size={16} /> Imprimir / Salvar PDF
-                                        </button>
+                                        <div className="flex justify-end gap-2 mb-2 no-print">
+                                            {!isReportSaved ? (
+                                                <button onClick={saveReportToClient} className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors">
+                                                    <CheckCircle size={16} /> Salvar no Histórico
+                                                </button>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-md"><CheckCircle size={16}/> Salvo no Perfil</span>
+                                            )}
+                                            <button onClick={() => window.print()} className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors">
+                                                <Printer size={16} /> Imprimir / Salvar PDF
+                                            </button>
+                                        </div>
                                         <p className="text-sm text-slate-600"><strong>Período:</strong> {new Date(reportConfig.startDate + 'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(reportConfig.endDate + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
                                     </div>
                                 </div>
+
                                 <div className="grid grid-cols-2 gap-8 mb-8">
                                     <div>
-                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Cliente Alvo</h3>
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Dados do Cliente</h3>
                                         <p className="text-xl font-bold text-slate-800">{generatedReport.companyName}</p>
                                         <p className="text-sm text-slate-600">CNPJ: <strong>{generatedReport.cnpj || 'Não informado'}</strong></p>
+                                        <p className="text-sm text-slate-600">Serviços: <strong>{generatedReport.servicesContracted.join(', ')}</strong></p>
                                     </div>
                                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Gestão Responsável</h3>
-                                        <p className="text-sm text-slate-700 flex justify-between"><span>Gestor de Tráfego:</span> <strong>{generatedReport.assignedTeam.trafficManager}</strong></p>
-                                        <p className="text-sm text-slate-700 flex justify-between mt-1"><span>CS de Atendimento:</span> <strong>{generatedReport.assignedTeam.cs}</strong></p>
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Squad Agência360</h3>
+                                        <div className="space-y-1">
+                                            <p className="text-sm text-slate-700 flex justify-between"><span>Customer Success (CS):</span> <strong>{generatedReport.assignedTeam.cs}</strong></p>
+                                            <p className="text-sm text-slate-700 flex justify-between"><span>Gestor de Tráfego:</span> <strong>{generatedReport.assignedTeam.trafficManager}</strong></p>
+                                        </div>
                                     </div>
                                 </div>
+
                                 <div className="mb-8">
-                                    <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Investimento Executado</h3>
+                                    <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Investimento do Período</h3>
                                     <div className="grid grid-cols-3 gap-4">
-                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center"><p className="text-xs font-bold text-blue-700 uppercase mb-1">Google Ads</p><p className="text-xl font-black text-blue-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyGoogle)}</p></div>
-                                        <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 text-center"><p className="text-xs font-bold text-indigo-700 uppercase mb-1">Meta Ads</p><p className="text-xl font-black text-indigo-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyMeta)}</p></div>
-                                        <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center text-white"><p className="text-xs font-bold text-slate-300 uppercase mb-1">Investimento Total</p><p className="text-xl font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyGoogle + generatedReport.investmentDetails.monthlyMeta)}</p></div>
+                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center">
+                                            <p className="text-xs font-bold text-blue-700 uppercase mb-1">Google Ads</p>
+                                            <p className="text-xl font-black text-blue-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyGoogle)}</p>
+                                        </div>
+                                        <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 text-center">
+                                            <p className="text-xs font-bold text-indigo-700 uppercase mb-1">Meta Ads</p>
+                                            <p className="text-xl font-black text-indigo-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyMeta)}</p>
+                                        </div>
+                                        <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center text-white">
+                                            <p className="text-xs font-bold text-slate-300 uppercase mb-1">Total</p>
+                                            <p className="text-xl font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyGoogle + generatedReport.investmentDetails.monthlyMeta)}</p>
+                                        </div>
                                     </div>
                                 </div>
+
                                 <div className="mb-8">
-                                    <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Performance do Período</h3>
+                                    <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Resultados Alcançados</h3>
                                     <table className="w-full text-left border-collapse">
-                                        <thead><tr className="bg-slate-100"><th className="p-3 text-sm font-bold text-slate-700 border border-slate-200">Indicador</th><th className="p-3 text-sm font-bold text-slate-700 border border-slate-200 text-center">Meta Teto</th><th className="p-3 text-sm font-bold text-slate-700 border border-slate-200 text-center">Resultado Real</th><th className="p-3 text-sm font-bold text-slate-700 border border-slate-200 text-center">Status</th></tr></thead>
+                                        <thead>
+                                            <tr className="bg-slate-100">
+                                                <th className="p-3 text-sm font-bold text-slate-700 border border-slate-200">Indicador</th>
+                                                <th className="p-3 text-sm font-bold text-slate-700 border border-slate-200 text-center">Meta Fixada</th>
+                                                <th className="p-3 text-sm font-black text-blue-900 border border-slate-200 text-center bg-blue-50">Resultado (Mês)</th>
+                                                <th className="p-3 text-sm font-bold text-slate-700 border border-slate-200 text-center">Status</th>
+                                            </tr>
+                                        </thead>
                                         <tbody>
                                             <tr>
                                                 <td className="p-3 text-sm text-slate-800 border border-slate-200">Volume de Leads</td>
                                                 <td className="p-3 text-sm font-medium text-slate-600 border border-slate-200 text-center">{generatedReport.performanceMetrics.leadsGoal}</td>
-                                                <td className="p-3 text-sm font-bold text-slate-800 border border-slate-200 text-center">{generatedReport.reportPeriodStats.leads}</td>
-                                                <td className="p-3 text-center border border-slate-200">{generatedReport.reportPeriodStats.leads >= generatedReport.performanceMetrics.leadsGoal ? <span className="text-emerald-600 font-bold text-xs bg-emerald-50 px-2 py-1 rounded">Batida</span> : <span className="text-amber-600 font-bold text-xs bg-amber-50 px-2 py-1 rounded">Abaixo</span>}</td>
+                                                <td className="p-3 text-lg font-bold text-slate-800 border border-blue-200 text-center bg-blue-50/50">{generatedReport.reportPeriodStats.leads}</td>
+                                                <td className="p-3 text-center border border-slate-200">
+                                                    {Number(generatedReport.reportPeriodStats.leads) >= generatedReport.performanceMetrics.leadsGoal ? 
+                                                        <span className="text-emerald-600 font-bold text-xs bg-emerald-50 px-2 py-1 rounded border border-emerald-200">Batida</span> : 
+                                                        <span className="text-amber-600 font-bold text-xs bg-amber-50 px-2 py-1 rounded border border-amber-200">Abaixo</span>
+                                                    }
+                                                </td>
                                             </tr>
                                             <tr className="bg-slate-50">
-                                                <td className="p-3 text-sm text-slate-800 border border-slate-200">Custo Por Lead (CPL)</td>
-                                                <td className="p-3 text-sm font-medium text-slate-600 border border-slate-200 text-center">R$ {generatedReport.performanceMetrics.cplTarget}</td>
-                                                <td className="p-3 text-sm font-bold text-slate-800 border border-slate-200 text-center">R$ {generatedReport.reportPeriodStats.cpl}</td>
-                                                <td className="p-3 text-center border border-slate-200">{generatedReport.reportPeriodStats.cpl <= generatedReport.performanceMetrics.cplTarget ? <span className="text-emerald-600 font-bold text-xs bg-emerald-50 px-2 py-1 rounded">Saudável</span> : <span className="text-rose-600 font-bold text-xs bg-rose-50 px-2 py-1 rounded">Acima</span>}</td>
+                                                <td className="p-3 text-sm text-slate-800 border border-slate-200">Custo por Lead (CPL)</td>
+                                                <td className="p-3 text-sm font-medium text-slate-600 border border-slate-200 text-center">Máx: R$ {generatedReport.performanceMetrics.cplTarget}</td>
+                                                <td className="p-3 text-lg font-bold text-slate-800 border border-blue-200 text-center bg-blue-50/50">R$ {generatedReport.reportPeriodStats.cpl}</td>
+                                                <td className="p-3 text-center border border-slate-200">
+                                                    {Number(generatedReport.reportPeriodStats.cpl) <= generatedReport.performanceMetrics.cplTarget ? 
+                                                        <span className="text-emerald-600 font-bold text-xs bg-emerald-50 px-2 py-1 rounded border border-emerald-200">Dentro da Meta</span> : 
+                                                        <span className="text-rose-600 font-bold text-xs bg-rose-50 px-2 py-1 rounded border border-rose-200">Estourado</span>
+                                                    }
+                                                </td>
                                             </tr>
                                             <tr>
-                                                <td className="p-3 text-sm text-slate-800 border border-slate-200">Vendas Fechadas (CRM)</td>
+                                                <td className="p-3 text-sm text-slate-800 border border-slate-200">Vendas Confirmadas</td>
                                                 <td className="p-3 text-sm font-medium text-slate-600 border border-slate-200 text-center">-</td>
-                                                <td className="p-3 text-sm font-bold text-slate-800 border border-slate-200 text-center">{generatedReport.reportPeriodStats.sales}</td>
-                                                <td className="p-3 text-center border border-slate-200"><span className="text-blue-600 font-bold text-xs bg-blue-50 px-2 py-1 rounded">Registrado</span></td>
+                                                <td className="p-3 text-lg font-bold text-slate-800 border border-blue-200 text-center bg-blue-50/50">{generatedReport.reportPeriodStats.sales}</td>
+                                                <td className="p-3 text-center border border-slate-200">-</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
+
                                 {generatedReport.reportPeriodStats.notes && (
-                                    <div className="mb-8 bg-yellow-50/80 p-5 rounded-lg border border-yellow-200">
-                                        <h3 className="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-2">Comentários do Gestor</h3>
-                                        <p className="text-sm text-yellow-900">{generatedReport.reportPeriodStats.notes}</p>
-                                    </div>
-                                )}
-                                
-                                {generatedReport.reportPeriodStats.attachment && (
-                                    <div className="mb-8 bg-slate-50 p-4 rounded-lg border border-slate-200 flex items-center justify-between no-print">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-white rounded-lg border border-slate-200"><Paperclip size={18} className="text-slate-500"/></div>
-                                            <div>
-                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">Arquivo Anexado ao Relatório</p>
-                                                <p className="text-sm font-semibold text-blue-600">{generatedReport.reportPeriodStats.attachment.name}</p>
-                                            </div>
-                                        </div>
-                                        <a href={generatedReport.reportPeriodStats.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs font-bold bg-white text-slate-700 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg border border-slate-200 transition-colors shadow-sm">
-                                            <Download size={14}/> Abrir Anexo
-                                        </a>
-                                    </div>
-                                )}
-                                
-                                {generatedReport.campaignLogs && generatedReport.campaignLogs.filter(log => log.date >= reportConfig.startDate && log.date <= reportConfig.endDate).length > 0 && (
                                     <div className="mb-8">
-                                        <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Diário de Otimizações (Neste Período)</h3>
-                                        <table className="w-full text-left border-collapse border border-slate-200 rounded-lg overflow-hidden">
-                                            <thead>
-                                                <tr className="bg-slate-100">
-                                                    <th className="p-3 text-sm font-bold text-slate-700 border-b border-slate-200 w-32">Data</th>
-                                                    <th className="p-3 text-sm font-bold text-slate-700 border-b border-slate-200">Otimização Realizada</th>
-                                                </tr>
-                                            </thead>
+                                        <h3 className="text-sm font-bold text-slate-800 border-b border-slate-200 pb-2 mb-3">Comentários do Gestor</h3>
+                                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 italic">
+                                            {generatedReport.reportPeriodStats.notes}
+                                            {generatedReport.reportPeriodStats.attachment && (
+                                                <div className="mt-3 pt-3 border-t border-slate-200 no-print block">
+                                                    <a href={generatedReport.reportPeriodStats.attachment.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-blue-600 hover:bg-blue-50 text-xs font-semibold rounded-md border border-slate-200 transition-colors">
+                                                        <Paperclip size={14}/> Anexo do Fechamento: {generatedReport.reportPeriodStats.attachment.name}
+                                                    </a>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {periodLogs.length > 0 && (
+                                    <div className="mb-8">
+                                        <h3 className="text-sm font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Otimizações e Ações Realizadas no Período</h3>
+                                        <table className="w-full text-left border-collapse">
                                             <tbody>
-                                                {generatedReport.campaignLogs
-                                                    .filter(log => log.date >= reportConfig.startDate && log.date <= reportConfig.endDate)
-                                                    .sort((a, b) => new Date(a.date) - new Date(b.date))
-                                                    .map((log, index) => (
-                                                    <tr key={log.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                                                        <td className="p-3 text-sm font-semibold text-slate-600 border-b border-slate-100 align-top">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                                                        <td className="p-3 text-sm text-slate-800 border-b border-slate-100">
+                                                {periodLogs.map(log => (
+                                                    <tr key={log.id} className="border-b border-slate-100 last:border-0">
+                                                        <td className="p-2 w-32 text-xs font-bold text-slate-500">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                                        <td className="p-2 text-sm text-slate-700">
                                                             {log.note}
                                                             {log.attachment && (
-                                                                <a href={log.attachment.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 bg-slate-100 text-blue-600 hover:bg-blue-50 hover:border-blue-200 text-xs font-semibold rounded-md border border-slate-200 transition-colors w-max no-print block">
-                                                                    <Paperclip size={12}/> {log.attachment.name}
+                                                                <a href={log.attachment.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-2 no-print">
+                                                                    <Paperclip size={10}/> Ver Anexo
                                                                 </a>
                                                             )}
                                                         </td>
@@ -635,7 +661,7 @@
                                         </table>
                                     </div>
                                 )}
-                                
+
                                 <div className="mt-12 text-center text-xs text-slate-400 border-t border-slate-100 pt-4">Relatório operacional gerado via Agência360.</div>
                             </div>
                         )}
@@ -646,114 +672,91 @@
             const LogsView = () => {
                 const handleSaveLog = (e) => {
                     e.preventDefault();
-                    if (!logFormData.clientId || !logFormData.note.trim()) return;
-
+                    if (!logFormData.clientId || !logFormData.note) return;
+                    
                     const updatedClients = clients.map(c => {
                         if (c.id === Number(logFormData.clientId)) {
-                            const updatedLogs = [...(c.campaignLogs || [])];
-                            updatedLogs.push({ id: Date.now(), date: logFormData.date, note: logFormData.note, attachment: logFormData.attachment });
-                            updatedLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
-                            return { ...c, campaignLogs: updatedLogs };
+                            const newLog = {
+                                id: Date.now(),
+                                date: logFormData.date,
+                                note: logFormData.note,
+                                attachment: logFormData.attachment
+                            };
+                            return { ...c, campaignLogs: [newLog, ...(c.campaignLogs || [])] };
                         }
                         return c;
                     });
-
+                    
                     setClients(updatedClients);
-                    // Limpa apenas o texto para facilitar múltiplos lançamentos, mantém cliente e data
-                    setLogFormData({ ...logFormData, note: '', attachment: null }); 
+                    setLogFormData({ ...logFormData, note: '', attachment: null }); // Limpa form
                 };
 
-                // Agrupar todos os logs do gestor para visualizar a timeline global de trabalho
-                const allLogs = myClients.flatMap(c => 
-                    (c.campaignLogs || []).map(log => ({ ...log, clientName: c.companyName, franchiseId: c.franchiseId }))
-                ).sort((a, b) => new Date(b.date) - new Date(a.date));
+                const handleLogAttachment = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        setLogFormData({...logFormData, attachment: { name: file.name, url: URL.createObjectURL(file) }});
+                    }
+                };
 
                 return (
                     <div className="space-y-6">
                         <div>
-                            <h2 className="text-2xl font-bold text-slate-800">Diário de Otimizações (Logs)</h2>
-                            <p className="text-sm text-slate-500 mt-1">Registre de forma rápida as alterações de campanhas, criativos e orçamentos.</p>
+                            <h2 className="text-2xl font-bold text-slate-800">Diário de Otimizações</h2>
+                            <p className="text-sm text-slate-500 mt-1">Registre as alterações em campanhas e crie um histórico sólido para os relatórios.</p>
                         </div>
 
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <form onSubmit={handleSaveLog} className="space-y-4">
-                                <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2"><Edit size={16} /> Novo Registro Rápido</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div className="md:col-span-2">
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Cliente / Conta</label>
-                                        <select required value={logFormData.clientId} onChange={e => setLogFormData({...logFormData, clientId: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium">
-                                            <option value="">Selecione o cliente...</option>
-                                            {myClients.map(c => <option key={c.id} value={c.id}>{c.companyName} {c.franchiseId ? `(${c.franchiseId})` : ''}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Data da Ação</label>
-                                        <input required type="date" value={logFormData.date} onChange={e => setLogFormData({...logFormData, date: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
-                                    <div className="hidden md:block"></div>
-                                    
-                                    <div className="md:col-span-3">
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Ação Realizada</label>
-                                        <input required type="text" value={logFormData.note} onChange={e => setLogFormData({...logFormData, note: e.target.value})} placeholder="Ex: Ajuste de lances CBO, pausamos conjuntos com CPL alto, nova landing page..." className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
-                                    <div className="md:col-span-1 flex items-end">
-                                        <button type="submit" className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg font-bold transition-colors shadow-sm">
-                                            <Plus size={18} /> Salvar Log
-                                        </button>
-                                    </div>
-
-                                    <div className="md:col-span-4 flex items-center gap-3 mt-[-8px]">
-                                        <label className="flex items-center gap-2 cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border border-slate-200 w-max shadow-sm">
-                                            <Paperclip size={14} /> {logFormData.attachment ? 'Trocar Anexo' : 'Anexar Print / Arquivo'}
-                                            <input type="file" className="hidden" onChange={e => {
-                                                const file = e.target.files[0];
-                                                if(file) setLogFormData({...logFormData, attachment: { name: file.name, url: URL.createObjectURL(file) }});
-                                            }} />
+                        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <form onSubmit={handleSaveLog} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Conta *</label>
+                                    <select required value={logFormData.clientId} onChange={e => setLogFormData({...logFormData, clientId: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                        <option value="">Selecione...</option>
+                                        {myClients.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Data da Ação *</label>
+                                    <input required type="date" value={logFormData.date} onChange={e => setLogFormData({...logFormData, date: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">O que foi feito? *</label>
+                                    <div className="flex gap-2">
+                                        <input required type="text" value={logFormData.note} onChange={e => setLogFormData({...logFormData, note: e.target.value})} placeholder="Ex: Subimos nova campanha de remarketing com orçamento X..." className="flex-1 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                        <label className="cursor-pointer flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 rounded-lg border border-slate-300 transition-colors" title="Anexar arquivo/print">
+                                            <Paperclip size={18} />
+                                            <input type="file" className="hidden" onChange={handleLogAttachment} />
                                         </label>
-                                        {logFormData.attachment && (
-                                            <span className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
-                                                {logFormData.attachment.name}
-                                                <button type="button" onClick={() => setLogFormData({...logFormData, attachment: null})} className="text-blue-400 hover:text-blue-700"><X size={14}/></button>
-                                            </span>
-                                        )}
+                                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm">Salvar</button>
                                     </div>
+                                    {logFormData.attachment && (
+                                        <p className="text-[10px] font-bold text-blue-600 mt-1 flex items-center gap-1"><CheckCircle size={10}/> {logFormData.attachment.name} anexado.</p>
+                                    )}
                                 </div>
                             </form>
                         </div>
 
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Activity size={16} className="text-slate-500" /> Meu Histórico Recente</h3>
-                            {allLogs.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-slate-50 border-b border-slate-200">
-                                                <th className="p-3 text-xs font-bold text-slate-500 uppercase w-32">Data</th>
-                                                <th className="p-3 text-xs font-bold text-slate-500 uppercase w-1/4">Conta</th>
-                                                <th className="p-3 text-xs font-bold text-slate-500 uppercase">Otimização Gravada</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {allLogs.map((log, index) => (
-                                                <tr key={`${log.id}-${index}`} className="hover:bg-slate-50/80 transition-colors">
-                                                    <td className="p-3 text-sm font-semibold text-slate-500 whitespace-nowrap">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                                                    <td className="p-3 text-sm font-bold text-slate-700">{log.clientName} <span className="text-xs text-slate-400 font-normal block">{log.franchiseId}</span></td>
-                                                    <td className="p-3 text-sm text-slate-600">
-                                                        {log.note}
-                                                        {log.attachment && (
-                                                            <a href={log.attachment.url} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-blue-600 hover:bg-blue-50 hover:border-blue-200 text-[10px] font-bold rounded border border-slate-200 transition-colors">
-                                                                <Paperclip size={10}/> Anexo
-                                                            </a>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="p-4 border-b border-slate-200 bg-slate-50">
+                                <h3 className="text-sm font-bold text-slate-800">Últimos Registros (Todas as Contas)</h3>
+                            </div>
+                            <div className="p-4">
+                                <div className="space-y-4">
+                                    {myClients.flatMap(c => (c.campaignLogs || []).map(log => ({...log, clientName: c.companyName}))).sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 15).map(log => (
+                                        <div key={log.id + log.clientName} className="flex gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                            <div className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded w-max h-max mt-0.5">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</div>
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-800 mb-0.5">{log.clientName}</p>
+                                                <p className="text-sm text-slate-600">{log.note}</p>
+                                                {log.attachment && (
+                                                    <a href={log.attachment.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-white text-blue-600 hover:bg-blue-50 text-xs font-bold rounded border border-slate-200 transition-colors w-max shadow-sm">
+                                                        <Paperclip size={12}/> Ver Anexo
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            ) : (
-                                <p className="text-sm text-slate-500 text-center py-6">Você ainda não registrou nenhum log de otimização.</p>
-                            )}
+                            </div>
                         </div>
                     </div>
                 );
@@ -765,95 +768,72 @@
 
                 return (
                     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-end">
-                        <div className="bg-slate-50 w-full max-w-2xl h-full shadow-2xl overflow-y-auto">
+                        <div className="bg-slate-50 w-full max-w-2xl h-full shadow-2xl overflow-y-auto" style={{animation: 'slideIn 0.3s ease-out'}}>
                             <div className="sticky top-0 z-10 bg-white border-b border-slate-200 p-6 flex justify-between items-start">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
                                         <h2 className="text-2xl font-bold text-slate-800">{selectedClient.companyName}</h2>
                                         {selectedClient.franchiseId && <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-md border border-slate-200">{selectedClient.franchiseId}</span>}
-                                        {selectedClient.storeStatus === 'Em Inauguração' && <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md border border-amber-200 flex items-center gap-1"><Flag size={12} /> Em Inauguração</span>}
                                     </div>
-                                    <div className="flex items-center gap-4 text-sm text-slate-500"><span className="flex items-center gap-1"><MapPin size={14} /> {selectedClient.address}</span></div>
+                                    <div className="flex items-center gap-4 text-sm text-slate-500">
+                                        <span className="flex items-center gap-1"><MapPin size={14} /> {selectedClient.address}</span>
+                                    </div>
                                 </div>
                                 <button onClick={() => setSelectedClient(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"><X size={20} /></button>
                             </div>
 
-                            <div className="p-6 space-y-6">
-                                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                    <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2 border-b border-slate-100 pb-2"><DollarSign size={18} className="text-emerald-500" /> Planejamento de Tráfego</h3>
+                            <div className="p-6">
+                                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mb-6">
+                                    <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2 border-b border-slate-100 pb-2"><DollarSign size={18} className="text-emerald-500" /> Estrutura de Investimento</h3>
                                     
                                     <div className="grid grid-cols-2 gap-4 mb-6">
-                                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100"><p className="text-xs text-slate-500 font-semibold uppercase mb-1">Mês: Google Ads</p><p className="text-lg font-bold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedClient.investmentDetails.monthlyGoogle)}</p></div>
-                                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100"><p className="text-xs text-slate-500 font-semibold uppercase mb-1">Mês: Meta Ads</p><p className="text-lg font-bold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedClient.investmentDetails.monthlyMeta)}</p></div>
+                                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                                            <p className="text-xs text-slate-500 font-semibold uppercase mb-1">Mês: Google Ads</p>
+                                            <p className="text-lg font-bold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedClient.investmentDetails.monthlyGoogle)}</p>
+                                        </div>
+                                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                                            <p className="text-xs text-slate-500 font-semibold uppercase mb-1">Mês: Meta Ads</p>
+                                            <p className="text-lg font-bold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedClient.investmentDetails.monthlyMeta)}</p>
+                                        </div>
                                     </div>
 
                                     <div className="mb-6 p-4 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center justify-between">
-                                        <div><p className="text-xs text-emerald-700 font-semibold uppercase mb-1">Frequência de Repasse (PIX / Saldo)</p><p className="text-sm font-bold text-slate-800">{selectedClient.investmentDetails.pixFrequency} <span className="font-normal text-slate-600">- {selectedClient.investmentDetails.pixDays?.length > 0 ? selectedClient.investmentDetails.pixDays.join(', ') : 'Dias não marcados'}</span></p></div>
+                                        <div>
+                                            <p className="text-xs text-emerald-700 font-semibold uppercase mb-1">Frequência de Repasse (PIX)</p>
+                                            <p className="text-sm font-bold text-slate-800">{selectedClient.investmentDetails.pixFrequency} <span className="font-normal text-slate-600">- {selectedClient.investmentDetails.pixDays?.length > 0 ? selectedClient.investmentDetails.pixDays.join(', ') : 'Dias não especificados'}</span></p>
+                                        </div>
                                     </div>
 
                                     <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
-                                        <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-3">Rateio Semanal Automático</h4>
+                                        <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-3">Rateio Semanal</h4>
                                         <div className="space-y-2">
-                                            <div className="flex justify-between items-center text-sm"><span className="text-slate-600">Orçamento Semanal Google:</span><span className="font-semibold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finances.weeklyGoogle)}</span></div>
-                                            <div className="flex justify-between items-center text-sm"><span className="text-slate-600 flex items-center gap-1">Orçamento Semanal Meta Bruto: <Info size={12} className="text-slate-400" /></span><span className="font-semibold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finances.weeklyMetaGross)}</span></div>
-                                            <div className="flex justify-between items-center text-sm pt-2 border-t border-blue-200/50 mt-2"><span className="text-blue-800 font-semibold flex items-center gap-1">Meta Ads Líquido <span className="text-xs text-blue-600 font-normal">(-12,15%)</span></span><span className="font-bold text-blue-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finances.weeklyMetaNet)}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Informações e Presença Digital</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <h4 className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5"><FileBadge size={14} className="text-slate-500" /> Dados Básicos</h4>
-                                            <p className="text-sm text-slate-600 mb-1"><strong>Resp. Legal:</strong> {selectedClient.legalResponsible}</p>
-                                            <p className="text-sm text-slate-600 mb-1"><strong>CNPJ:</strong> {selectedClient.cnpj || 'Não informado'}</p>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5"><Globe size={14} className="text-indigo-500" /> Links da Empresa</h4>
-                                            <div className="space-y-2">
-                                                <p className="text-sm text-slate-600 flex items-center gap-2"><Globe size={14} className="text-slate-400"/> {selectedClient.website ? <a href={selectedClient.website.startsWith('http') ? selectedClient.website : `https://${selectedClient.website}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Site Oficial</a> : 'Não informado'}</p>
-                                                <p className="text-sm text-slate-600 flex items-center gap-2"><Instagram size={14} className="text-slate-400"/> {selectedClient.instagram ? <a href={`https://instagram.com/${selectedClient.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="text-pink-600 hover:underline">{selectedClient.instagram}</a> : 'Não informado'}</p>
-                                                <p className="text-sm text-slate-600 flex items-center gap-2"><MessageCircle size={14} className="text-slate-400"/> {selectedClient.whatsapp ? <span className="text-emerald-600 font-medium">Pré-vendas: {selectedClient.whatsapp}</span> : 'Não informado'}</p>
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-slate-600">Semanal Google:</span>
+                                                <span className="font-semibold text-slate-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finances.weeklyGoogle)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm pt-2 border-t border-blue-200/50 mt-2">
+                                                <span className="text-blue-800 font-semibold flex items-center gap-1">Meta Ads Líquido <span className="text-xs text-blue-600 font-normal">(-12,15%)</span></span>
+                                                <span className="font-bold text-blue-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finances.weeklyMetaNet)}</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                {selectedClient.storeStatus === 'Em Inauguração' && (
-                                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-5 rounded-xl border border-amber-200 shadow-sm mb-6">
-                                        <h3 className="text-sm font-bold text-amber-800 mb-4 flex items-center gap-2 border-b border-amber-200/50 pb-2"><Flag size={18} className="text-amber-600" /> Cronograma de Inauguração</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div className="bg-white/60 p-3 rounded-lg border border-amber-100"><p className="text-xs text-amber-700 font-semibold uppercase mb-1 flex items-center gap-1"><Megaphone size={12}/> 1. Branding</p><p className="text-sm font-bold text-slate-800">{selectedClient.awarenessStartDate ? new Date(selectedClient.awarenessStartDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não definida'}</p></div>
-                                            <div className="bg-white/60 p-3 rounded-lg border border-amber-100"><p className="text-xs text-amber-700 font-semibold uppercase mb-1 flex items-center gap-1"><Target size={12}/> 2. Captação</p><p className="text-sm font-bold text-slate-800">{selectedClient.performanceStartDate ? new Date(selectedClient.performanceStartDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não definida'}</p></div>
-                                            <div className="bg-amber-500 p-3 rounded-lg border border-amber-600 text-white shadow-inner"><p className="text-xs text-amber-100 font-semibold uppercase mb-1 flex items-center gap-1"><Calendar size={12}/> Inauguração</p><p className="text-sm font-bold text-white">{selectedClient.inaugurationDate ? new Date(selectedClient.inaugurationDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não definida'}</p></div>
-                                        </div>
-                                    </div>
-                                )}
 
-                                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Estratégia e Segmentação</h3>
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div><p className="text-xs text-slate-500 uppercase font-semibold mb-1">Público de Interesse (Persona)</p><p className="text-sm text-slate-800">{selectedClient.targeting?.audience || 'Não definido'}</p></div>
-                                            <div><p className="text-xs text-slate-500 uppercase font-semibold mb-1">Região de Atuação (Geo)</p><p className="text-sm text-slate-800">{selectedClient.targeting?.region || 'Não definida'}</p></div>
-                                        </div>
-                                        {selectedClient.notes && (
-                                            <div className="pt-4 border-t border-slate-100"><p className="text-xs text-slate-500 uppercase font-semibold mb-2">Anotações / Restrições do Cliente</p><div className="p-3 bg-yellow-50/50 border border-yellow-100 rounded-lg text-sm text-slate-700">{selectedClient.notes}</div></div>
-                                        )}
-                                    </div>
-                                </div>
-                                
+                                {/* Histórico de Logs */}
                                 {selectedClient.campaignLogs && selectedClient.campaignLogs.length > 0 && (
-                                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mt-6 mb-6">
-                                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Activity size={16} className="text-blue-500"/> Linha do Tempo: Ações e Otimizações</h3>
-                                        <div className="space-y-4 pl-2">
-                                            {selectedClient.campaignLogs.map((log, i) => (
-                                                <div key={log.id || i} className="flex gap-4 items-start relative before:absolute before:left-[11px] before:top-8 before:bottom-[-20px] before:w-[2px] before:bg-slate-200 last:before:hidden">
-                                                    <div className="w-6 h-6 rounded-full bg-blue-100 border-2 border-white flex-shrink-0 z-10 flex items-center justify-center mt-0.5 shadow-sm"><CheckCircle size={12} className="text-blue-600"/></div>
-                                                    <div className="pb-3 flex-1">
-                                                        <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                                                        <p className="text-sm text-slate-700 mt-1.5">{log.note}</p>
+                                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mb-6">
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Calendar size={16} className="text-blue-500"/> Timeline de Ações</h3>
+                                        <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+                                            {selectedClient.campaignLogs.sort((a,b) => new Date(b.date) - new Date(a.date)).map(log => (
+                                                <div key={log.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                                    <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-100 text-slate-500 group-[.is-active]:bg-blue-500 group-[.is-active]:text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                                                        <Activity size={16} />
+                                                    </div>
+                                                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <time className="text-xs font-bold text-blue-500">{new Date(log.date + 'T12:00:00').toLocaleDateString('pt-BR')}</time>
+                                                        </div>
+                                                        <p className="text-sm text-slate-700">{log.note}</p>
                                                         {log.attachment && (
                                                             <a href={log.attachment.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 text-blue-600 hover:bg-blue-50 hover:border-blue-200 text-xs font-semibold rounded-lg border border-slate-200 transition-colors w-max shadow-sm">
                                                                 <Paperclip size={14}/> {log.attachment.name}
@@ -865,6 +845,39 @@
                                         </div>
                                     </div>
                                 )}
+                                
+                                {/* Histórico de Relatórios Salvos */}
+                                {selectedClient.savedReports && selectedClient.savedReports.length > 0 && (
+                                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mb-6">
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><FileText size={16} className="text-purple-500"/> Histórico de Relatórios (Fechamentos)</h3>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-slate-50">
+                                                        <th className="p-3 text-xs font-bold text-slate-500 border-b border-slate-200">Data da Geração</th>
+                                                        <th className="p-3 text-xs font-bold text-slate-500 border-b border-slate-200">Período</th>
+                                                        <th className="p-3 text-xs font-bold text-slate-500 border-b border-slate-200">Leads</th>
+                                                        <th className="p-3 text-xs font-bold text-slate-500 border-b border-slate-200 text-right">Ação</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {selectedClient.savedReports.sort((a,b) => b.id - a.id).map(rep => (
+                                                        <tr key={rep.id} className="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
+                                                            <td className="p-3 text-sm text-slate-700 font-medium">{new Date(rep.generatedAt).toLocaleDateString('pt-BR')}</td>
+                                                            <td className="p-3 text-sm text-slate-600">{new Date(rep.startDate + 'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(rep.endDate + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                                            <td className="p-3 text-sm text-slate-600 font-bold">{rep.stats.leads}</td>
+                                                            <td className="p-3 text-right">
+                                                                <button onClick={() => handleViewSavedReport(selectedClient, rep)} className="inline-flex items-center gap-1.5 text-xs font-bold bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors shadow-sm">
+                                                                    <Printer size={14}/> Abrir / Baixar
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -873,20 +886,57 @@
 
             const renderClientFormModal = () => {
                 if (!isFormOpen) return null;
-                const weekDays = [{ id: 'Domingo', label: 'Dom' }, { id: 'Segunda', label: 'Seg' }, { id: 'Terça', label: 'Ter' }, { id: 'Quarta', label: 'Qua' }, { id: 'Quinta', label: 'Qui' }, { id: 'Sexta', label: 'Sex' }, { id: 'Sábado', label: 'Sáb' }];
-                
+
+                const handleSaveClient = (e) => {
+                    e.preventDefault();
+
+                    const newClientData = {
+                        companyName: formData.name, franchiseId: formData.franchiseName || `NEW-${Math.floor(Math.random()*1000)}`,
+                        legalResponsible: formData.legalResponsible, address: formData.address,
+                        storeStatus: formData.storeStatus, inaugurationDate: formData.inaugurationDate, awarenessStartDate: formData.awarenessStartDate, performanceStartDate: formData.performanceStartDate,
+                        servicesContracted: ['Gestão de Tráfego'], 
+                        investmentDetails: { monthlyGoogle: Number(formData.monthlyGoogle), monthlyMeta: Number(formData.monthlyMeta), pixFrequency: formData.pixFrequency, pixDays: formData.pixDays },
+                        performanceMetrics: {
+                            leadsGoal: Number(formData.leadsGoal), cplTarget: Number(formData.cplTarget),
+                            leadsGenerated: Number(formData.leadsGenerated), currentCpl: Number(formData.currentCpl), salesClosed: Number(formData.salesClosed)
+                        },
+                        targeting: { audience: formData.audience, region: formData.region }, notes: formData.notes,
+                        cnpj: formData.cnpj, website: formData.website, instagram: formData.instagram, whatsapp: formData.whatsapp,
+                        satisfactionIndex: formData.satisfactionIndex, assignedTeam: { cs: formData.cs, trafficManager: formData.trafficManager },
+                        createdAt: editingClient ? clients.find(c => c.id === editingClient).createdAt : new Date().toISOString().split('T')[0],
+                        campaignLogs: editingClient ? clients.find(c => c.id === editingClient).campaignLogs : [],
+                        savedReports: editingClient ? clients.find(c => c.id === editingClient).savedReports : []
+                    };
+
+                    if (editingClient) {
+                        setClients(clients.map(c => c.id === editingClient ? { ...c, ...newClientData } : c));
+                    } else {
+                        setClients([...clients, { ...newClientData, id: clients.length + 1 }]);
+                    }
+                    setIsFormOpen(false);
+                };
+
                 const handleDayToggle = (day) => {
                     setFormData(prev => {
                         const currentDays = prev.pixDays || [];
-                        return { ...prev, pixDays: currentDays.includes(day) ? currentDays.filter(d => d !== day) : [...currentDays, day] };
+                        if (currentDays.includes(day)) {
+                            return { ...prev, pixDays: currentDays.filter(d => d !== day) };
+                        } else {
+                            return { ...prev, pixDays: [...currentDays, day] };
+                        }
                     });
                 };
+
+                const weekDays = [
+                    { id: 'Domingo', label: 'Dom' }, { id: 'Segunda', label: 'Seg' }, { id: 'Terça', label: 'Ter' },
+                    { id: 'Quarta', label: 'Qua' }, { id: 'Quinta', label: 'Qui' }, { id: 'Sexta', label: 'Sex' }, { id: 'Sábado', label: 'Sáb' }
+                ];
 
                 return (
                     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 sm:p-6">
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl my-auto flex flex-col max-h-[90vh]">
                             <div className="flex justify-between items-center p-6 border-b border-slate-200">
-                                <h2 className="text-xl font-bold text-slate-800">{editingClient ? 'Atualizar Conta' : 'Cadastrar Nova Conta'}</h2>
+                                <h2 className="text-xl font-bold text-slate-800">{editingClient ? 'Editar Conta' : 'Cadastrar Nova Conta'}</h2>
                                 <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"><X size={20} /></button>
                             </div>
                             <div className="overflow-y-auto p-6">
@@ -911,80 +961,35 @@
                                     </section>
                                     
                                     <section>
-                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Flag size={16} className="text-amber-500"/> Operação & Squad</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-semibold text-slate-600 mb-1">Status da Loja</label>
-                                                <select required value={formData.storeStatus} onChange={e => setFormData({...formData, storeStatus: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"><option value="Aberto">Em Operação</option><option value="Em Inauguração">Em Inauguração</option></select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-semibold text-slate-600 mb-1">CS da Conta</label>
-                                                <select required value={formData.cs} onChange={e => setFormData({...formData, cs: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"><option value="">Selecionar CS...</option>{agencyTeamList.filter(m => m.role.includes('CS')).map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-semibold text-slate-600 mb-1">Gestor de Tráfego</label>
-                                                <select required value={formData.trafficManager} onChange={e => setFormData({...formData, trafficManager: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"><option value="">Selecionar Gestor...</option>{agencyTeamList.filter(m => m.role.includes('Tráfego')).map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select>
-                                            </div>
-                                        </div>
-                                        {formData.storeStatus === 'Em Inauguração' && (
-                                            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                                                <div><label className="block text-xs font-bold text-amber-800 mb-1">Início (Reconhecimento)</label><input type="date" value={formData.awarenessStartDate} onChange={e => setFormData({...formData, awarenessStartDate: e.target.value})} className="w-full p-2.5 border border-amber-300 rounded-lg outline-none" /></div>
-                                                <div><label className="block text-xs font-bold text-amber-800 mb-1">Início (Captação Leads)</label><input type="date" value={formData.performanceStartDate} onChange={e => setFormData({...formData, performanceStartDate: e.target.value})} className="w-full p-2.5 border border-amber-300 rounded-lg outline-none" /></div>
-                                                <div><label className="block text-xs font-bold text-amber-800 mb-1">Data da Inauguração</label><input type="date" value={formData.inaugurationDate} onChange={e => setFormData({...formData, inaugurationDate: e.target.value})} className="w-full p-2.5 border border-amber-300 rounded-lg outline-none" /></div>
-                                            </div>
-                                        )}
-                                    </section>
-                                    
-                                    <section>
-                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><DollarSign size={16} className="text-emerald-500"/> Orçamento (Google & Meta)</h3>
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><DollarSign size={16} className="text-emerald-500"/> Orçamento & Pix</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-4">
-                                                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Google Ads Mensal (R$)</label><input type="number" min="0" step="100" value={formData.monthlyGoogle} onChange={e => setFormData({...formData, monthlyGoogle: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none" /></div>
-                                                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Meta Ads Mensal (R$)</label><input type="number" min="0" step="100" value={formData.monthlyMeta} onChange={e => setFormData({...formData, monthlyMeta: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none" /></div>
+                                                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Mês: Google Ads (R$)</label><input type="number" min="0" step="100" value={formData.monthlyGoogle} onChange={e => setFormData({...formData, monthlyGoogle: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" /></div>
+                                                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Mês: Meta Ads (R$)</label><input type="number" min="0" step="100" value={formData.monthlyMeta} onChange={e => setFormData({...formData, monthlyMeta: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" /></div>
                                             </div>
                                             <div className="space-y-4">
                                                 <div>
-                                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Frequência de Envio de PIX</label>
-                                                    <select value={formData.pixFrequency} onChange={e => setFormData({...formData, pixFrequency: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none">
-                                                        <option value="Semanal (1x)">1x na Semana</option><option value="Semanal (2x)">2x na Semana</option><option value="Semanal (3x)">3x na Semana</option><option value="Diário">Todo Dia</option>
+                                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Frequência de PIX</label>
+                                                    <select value={formData.pixFrequency} onChange={e => setFormData({...formData, pixFrequency: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                                        <option value="Semanal (1x)">1x na Semana</option><option value="Semanal (2x)">2x na Semana</option><option value="Diário">Todo Dia</option>
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-xs font-semibold text-slate-600 mb-2">Marque os dias de PIX</label>
+                                                    <label className="block text-xs font-semibold text-slate-600 mb-2">Dias do Envio (Opcional)</label>
                                                     <div className="flex flex-wrap gap-1.5">
                                                         {weekDays.map(day => (
-                                                            <button type="button" key={day.id} onClick={() => handleDayToggle(day.id)} className={`px-2.5 py-1.5 text-xs font-semibold rounded border transition-colors ${formData.pixDays?.includes(day.id) ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}>{day.label}</button>
+                                                            <button type="button" key={day.id} onClick={() => handleDayToggle(day.id)} className={`px-2 py-1 text-xs font-bold rounded border ${formData.pixDays?.includes(day.id) ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-slate-50 text-slate-500 border-slate-300'}`}>{day.label}</button>
                                                         ))}
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </section>
-                                    
-                                    <section>
-                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Target size={16} className="text-rose-500"/> Target e Estratégia</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">Público Alvo (Persona)</label><textarea value={formData.audience} onChange={e => setFormData({...formData, audience: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none min-h-[60px]"></textarea></div>
-                                            <div><label className="block text-xs font-semibold text-slate-600 mb-1">Região Geográfica</label><textarea value={formData.region} onChange={e => setFormData({...formData, region: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none min-h-[60px]"></textarea></div>
-                                            <div className="md:col-span-2"><label className="block text-xs font-semibold text-slate-600 mb-1">Observações Operacionais (Gerais)</label><textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none min-h-[60px]"></textarea></div>
-                                        </div>
-                                    </section>
-
-                                    <section>
-                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Status da Conta</h3>
-                                        <div>
-                                            <div className="flex gap-4">
-                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="satisfaction" value="Satisfied" checked={formData.satisfactionIndex === 'Satisfied'} onChange={(e) => setFormData({...formData, satisfactionIndex: e.target.value})} className="text-emerald-500" /><span className="text-sm font-medium text-slate-700">Satisfeito</span></label>
-                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="satisfaction" value="Neutral" checked={formData.satisfactionIndex === 'Neutral'} onChange={(e) => setFormData({...formData, satisfactionIndex: e.target.value})} className="text-amber-500" /><span className="text-sm font-medium text-slate-700">Neutro (Observar)</span></label>
-                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="satisfaction" value="Needs Attention" checked={formData.satisfactionIndex === 'Needs Attention'} onChange={(e) => setFormData({...formData, satisfactionIndex: e.target.value})} className="text-rose-500" /><span className="text-sm font-medium text-slate-700">Atenção (Risco)</span></label>
-                                            </div>
-                                        </div>
-                                    </section>
                                 </form>
                             </div>
                             <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 rounded-b-xl mt-auto">
-                                <button onClick={() => setIsFormOpen(false)} type="button" className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50">Cancelar</button>
-                                <button form="client-form" type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Salvar Dados</button>
+                                <button onClick={() => setIsFormOpen(false)} type="button" className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">Cancelar</button>
+                                <button form="client-form" type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">{editingClient ? 'Salvar Edição' : 'Cadastrar'}</button>
                             </div>
                         </div>
                     </div>
