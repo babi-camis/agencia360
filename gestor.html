@@ -32,7 +32,7 @@
     <script type="text/babel" data-type="module">
         import React, { useState } from 'https://esm.sh/react@18.2.0';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
-        import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'https://esm.sh/recharts@2.12.0?deps=react@18.2.0,react-dom@18.2.0';
+        import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'https://esm.sh/recharts@2.12.0?deps=react@18.2.0,react-dom@18.2.0';
         
         import * as LucideIcons from 'https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0';
         const { 
@@ -145,7 +145,7 @@
             // Report States
             const [reportConfig, setReportConfig] = useState({ 
                 client: '', startDate: '', endDate: '', 
-                leadsManual: 0, cplManual: 0, salesManual: 0, notesManual: '', attachment: null
+                leadsManual: 0, cplManual: 0, salesManual: 0, weeklyInvManual: 0, notesManual: '', attachment: null
             });
             const [generatedReport, setGeneratedReport] = useState(null);
             const [isReportSaved, setIsReportSaved] = useState(false);
@@ -204,6 +204,7 @@
                     leadsManual: savedReport.stats.leads,
                     cplManual: savedReport.stats.cpl,
                     salesManual: savedReport.stats.sales,
+                    weeklyInvManual: savedReport.stats.weeklyInv || 0,
                     notesManual: savedReport.stats.notes,
                     attachment: savedReport.stats.attachment
                 });
@@ -222,7 +223,17 @@
             const activeStores = myClients.filter(c => c.storeStatus === 'Aberto' || !c.storeStatus).length;
             const inauguratingStores = myClients.filter(c => c.storeStatus === 'Em Inauguração').length;
 
-            const DashboardView = () => (
+            const DashboardView = () => {
+                const activeClientsForGoals = myClients.filter(c => c.storeStatus !== 'Em Inauguração' && c.performanceMetrics.leadsGoal > 0);
+                const goalHitCount = activeClientsForGoals.filter(c => Number(c.performanceMetrics.leadsGenerated) >= Number(c.performanceMetrics.leadsGoal)).length;
+                const goalMissedCount = activeClientsForGoals.length - goalHitCount;
+                
+                const goalPieData = [
+                    { name: 'Meta Batida', value: goalHitCount, color: '#10b981' },
+                    { name: 'Abaixo da Meta', value: goalMissedCount, color: '#f43f5e' }
+                ];
+
+                return (
                 <div className="space-y-6">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800">Visão Geral das Minhas Contas</h2>
@@ -256,22 +267,51 @@
                         </div>
                     </div>
 
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Minha Evolução (Investimento vs Leads)</h3>
+                        <div className="h-72">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={mockPerformanceData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
+                                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
+                                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
+                                    <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}/>
+                                    <Legend />
+                                    <Line yAxisId="left" type="monotone" dataKey="leads" stroke="#8b5cf6" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} name="Leads" />
+                                    <Line yAxisId="right" type="monotone" dataKey="investimento" stroke="#3b82f6" strokeWidth={3} dot={{r: 4}} name="Investimento (R$)" />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 className="text-lg font-bold text-slate-800 mb-4">Minha Evolução (Invest. vs Leads)</h3>
-                            <div className="h-72">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={mockPerformanceData}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
-                                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
-                                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
-                                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}/>
-                                        <Legend />
-                                        <Line yAxisId="left" type="monotone" dataKey="leads" stroke="#8b5cf6" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} name="Leads" />
-                                        <Line yAxisId="right" type="monotone" dataKey="investimento" stroke="#3b82f6" strokeWidth={3} dot={{r: 4}} name="Investimento (R$)" />
-                                    </LineChart>
-                                </ResponsiveContainer>
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                            <h3 className="text-lg font-bold text-slate-800 mb-4">Atingimento de Metas (Leads)</h3>
+                            <div className="flex-1 min-h-[200px] relative flex flex-col items-center justify-center">
+                                {activeClientsForGoals.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={goalPieData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                            >
+                                                {goalPieData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                                            <Legend verticalAlign="bottom" height={36}/>
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <p className="text-slate-500 text-sm">Sem dados suficientes.</p>
+                                )}
                             </div>
                         </div>
 
@@ -300,7 +340,8 @@
                         </div>
                     </div>
                 </div>
-            );
+                );
+            };
 
             const handleOpenForm = (client = null) => {
                 if (client) {
@@ -418,11 +459,12 @@
                             leadsManual: client.performanceMetrics.leadsGenerated || 0, 
                             cplManual: client.performanceMetrics.currentCpl || 0, 
                             salesManual: client.performanceMetrics.salesClosed || 0,
+                            weeklyInvManual: 0,
                             notesManual: '',
                             attachment: null
                         });
                     } else {
-                        setReportConfig({...reportConfig, client: '', leadsManual: 0, cplManual: 0, salesManual: 0, notesManual: '', attachment: null});
+                        setReportConfig({...reportConfig, client: '', leadsManual: 0, cplManual: 0, salesManual: 0, weeklyInvManual: 0, notesManual: '', attachment: null});
                     }
                 };
 
@@ -445,6 +487,7 @@
                             leads: reportConfig.leadsManual,
                             cpl: reportConfig.cplManual,
                             sales: reportConfig.salesManual,
+                            weeklyInv: reportConfig.weeklyInvManual,
                             notes: reportConfig.notesManual,
                             attachment: reportConfig.attachment
                         }
@@ -498,6 +541,7 @@
                                         <div><label className="block text-xs font-bold text-blue-800 mb-1">Total de Leads (Mês)</label><input required type="number" min="0" value={reportConfig.leadsManual} onChange={e => setReportConfig({...reportConfig, leadsManual: e.target.value})} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-inner" /></div>
                                         <div><label className="block text-xs font-bold text-blue-800 mb-1">CPL Atual (R$)</label><input required type="number" min="0" step="0.01" value={reportConfig.cplManual} onChange={e => setReportConfig({...reportConfig, cplManual: e.target.value})} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-inner" /></div>
                                         <div><label className="block text-xs font-bold text-blue-800 mb-1">Vendas Fechadas</label><input required type="number" min="0" value={reportConfig.salesManual} onChange={e => setReportConfig({...reportConfig, salesManual: e.target.value})} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-inner" /></div>
+                                        <div><label className="block text-xs font-bold text-emerald-600 mb-1">Invest. Semanal (R$)</label><input required type="number" min="0" step="0.01" value={reportConfig.weeklyInvManual} onChange={e => setReportConfig({...reportConfig, weeklyInvManual: e.target.value})} className="w-full p-2 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white shadow-inner" placeholder="Ex: Gasto da última semana" /></div>
                                         <div className="md:col-span-4"><label className="block text-xs font-bold text-slate-600 mb-1">Observações do Gestor para a Diretoria</label><textarea value={reportConfig.notesManual} onChange={e => setReportConfig({...reportConfig, notesManual: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white min-h-[60px]" placeholder="Justificativas de oscilação, ações tomadas no mês..."></textarea></div>
                                         <div className="md:col-span-4 flex items-center gap-4 pt-2">
                                             <div>
@@ -563,18 +607,22 @@
 
                                 <div className="mb-8">
                                     <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Investimento do Período</h3>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center">
-                                            <p className="text-xs font-bold text-blue-700 uppercase mb-1">Google Ads</p>
-                                            <p className="text-xl font-black text-blue-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyGoogle)}</p>
+                                    <div className="grid grid-cols-4 gap-4">
+                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center flex flex-col justify-center">
+                                            <p className="text-xs font-bold text-blue-700 uppercase mb-1">Google Ads (Mês)</p>
+                                            <p className="text-lg font-black text-blue-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyGoogle)}</p>
                                         </div>
-                                        <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 text-center">
-                                            <p className="text-xs font-bold text-indigo-700 uppercase mb-1">Meta Ads</p>
-                                            <p className="text-xl font-black text-indigo-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyMeta)}</p>
+                                        <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 text-center flex flex-col justify-center">
+                                            <p className="text-xs font-bold text-indigo-700 uppercase mb-1">Meta Ads (Mês)</p>
+                                            <p className="text-lg font-black text-indigo-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyMeta)}</p>
                                         </div>
-                                        <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center text-white">
-                                            <p className="text-xs font-bold text-slate-300 uppercase mb-1">Total</p>
-                                            <p className="text-xl font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyGoogle + generatedReport.investmentDetails.monthlyMeta)}</p>
+                                        <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 text-center shadow-inner flex flex-col justify-center">
+                                            <p className="text-xs font-bold text-emerald-700 uppercase mb-1">Gasto Semanal Real</p>
+                                            <p className="text-lg font-black text-emerald-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(generatedReport.reportPeriodStats.weeklyInv) || 0)}</p>
+                                        </div>
+                                        <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center text-white flex flex-col justify-center">
+                                            <p className="text-xs font-bold text-slate-300 uppercase mb-1">Orçamento Total</p>
+                                            <p className="text-lg font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(generatedReport.investmentDetails.monthlyGoogle + generatedReport.investmentDetails.monthlyMeta)}</p>
                                         </div>
                                     </div>
                                 </div>
