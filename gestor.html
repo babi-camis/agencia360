@@ -30,7 +30,7 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState } from 'https://esm.sh/react@18.2.0';
+        import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'https://esm.sh/recharts@2.12.0?deps=react@18.2.0,react-dom@18.2.0';
         
@@ -39,7 +39,7 @@
             LayoutDashboard, Users, TrendingUp, AlertCircle, CheckCircle, 
             Search, Plus, X, Building2, MapPin, Target, DollarSign, 
             Briefcase, Activity, Edit, Calendar, Phone, Info, Flag, Megaphone, FileText, Printer,
-            Globe, Instagram, MessageCircle, FileBadge, Paperclip, Download
+            Globe, Instagram, MessageCircle, FileBadge, Paperclip, Download, Clock
         } = LucideIcons;
 
         const mockPerformanceData = [
@@ -101,7 +101,7 @@
                 storeStatus: 'Em Inauguração',
                 inaugurationDate: '2026-09-15', awarenessStartDate: '2026-08-15', performanceStartDate: '2026-09-01',
                 servicesContracted: ['Gestão de Tráfego'],
-                investmentDetails: { monthlyGoogle: 2000, monthlyMeta: 5000, pixFrequency: 'Diário', pixDays: ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'] },
+                investmentDetails: { monthlyGoogle: 2000, monthlyMeta: 5000, pixFrequency: 'Semanal (2x)', pixDays: ['Segunda', 'Sexta'] },
                 performanceMetrics: { leadsGoal: 100, leadsGenerated: 0, cplTarget: 25, currentCpl: 0, salesClosed: 0 },
                 targeting: { audience: 'Proprietários de veículos', region: 'Maringá e raio 20km' },
                 notes: 'Aquecimento de conta e campanha de reconhecimento 30 dias antes.',
@@ -135,6 +135,15 @@
             const [clients, setClients] = useState(initialClients);
             const [selectedClient, setSelectedClient] = useState(null);
             const [searchTerm, setSearchTerm] = useState('');
+            
+            // Controle de Tempo Real e Checklist Diária
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [pixChecklist, setPixChecklist] = useState({});
+
+            useEffect(() => {
+                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
             
             // Filtro Blindado: O Gestor só enxerga as próprias contas
             const myClients = clients.filter(c => 
@@ -193,29 +202,6 @@
                 return { totalMonthly, weeklyGoogle, weeklyMetaGross, weeklyMetaNet };
             };
 
-            const handleViewSavedReport = (client, savedReport) => {
-                setSelectedClient(null); // Fecha modal do cliente se estiver aberto
-                setActiveTab('reports');
-                
-                setReportConfig({
-                    client: client.id.toString(),
-                    startDate: savedReport.startDate,
-                    endDate: savedReport.endDate,
-                    leadsManual: savedReport.stats.leads,
-                    cplManual: savedReport.stats.cpl,
-                    salesManual: savedReport.stats.sales,
-                    weeklyInvManual: savedReport.stats.weeklyInv || 0,
-                    notesManual: savedReport.stats.notes,
-                    attachment: savedReport.stats.attachment
-                });
-
-                setGeneratedReport({
-                    ...client,
-                    reportPeriodStats: savedReport.stats
-                });
-                setIsReportSaved(true);
-            };
-
             const totalInvestment = myClients.reduce((acc, curr) => acc + curr.investmentDetails.monthlyGoogle + curr.investmentDetails.monthlyMeta, 0);
             const totalLeads = myClients.reduce((acc, curr) => acc + curr.performanceMetrics.leadsGenerated, 0);
             const averageCpl = myClients.length ? (myClients.reduce((acc, curr) => acc + curr.performanceMetrics.currentCpl, 0) / myClients.length).toFixed(2) : "0.00";
@@ -224,6 +210,33 @@
             const inauguratingStores = myClients.filter(c => c.storeStatus === 'Em Inauguração').length;
 
             const DashboardView = () => {
+                // Cálculo de Datas e Hora de Brasília (BRT)
+                const options = { timeZone: 'America/Sao_Paulo' };
+                const bsbDateStr = currentTime.toLocaleString('en-US', options);
+                const brasiliaTime = new Date(bsbDateStr);
+                
+                const bsbHour = brasiliaTime.getHours();
+                const weekDaysMap = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                const todayBSB = weekDaysMap[brasiliaTime.getDay()];
+                
+                // Formatação bonita da Data
+                const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Sao_Paulo' };
+                let fullDateStr = new Intl.DateTimeFormat('pt-BR', dateOptions).format(currentTime);
+                fullDateStr = fullDateStr.charAt(0).toUpperCase() + fullDateStr.slice(1);
+
+                // Filtrando quem precisa de PIX hoje
+                const clientsNeedingPix = myClients.filter(c => {
+                    if (c.storeStatus === 'Em Inauguração' && !c.investmentDetails.monthlyGoogle && !c.investmentDetails.monthlyMeta) return false; 
+                    if (c.investmentDetails.pixFrequency === 'Diário' && brasiliaTime.getDay() !== 0 && brasiliaTime.getDay() !== 6) return true; // Diário = Seg a Sex
+                    return c.investmentDetails.pixDays?.includes(todayBSB);
+                });
+
+                // Lógica do Alerta das 17h
+                const isLateForPix = bsbHour >= 17;
+                const allPixChecked = clientsNeedingPix.length > 0 && clientsNeedingPix.every(c => pixChecklist[c.id]);
+                const showPixAlert = isLateForPix && clientsNeedingPix.length > 0 && !allPixChecked;
+
+                // Lógica do Gráfico de Metas
                 const activeClientsForGoals = myClients.filter(c => c.storeStatus !== 'Em Inauguração' && c.performanceMetrics.leadsGoal > 0);
                 const goalHitCount = activeClientsForGoals.filter(c => Number(c.performanceMetrics.leadsGenerated) >= Number(c.performanceMetrics.leadsGoal)).length;
                 const goalMissedCount = activeClientsForGoals.length - goalHitCount;
@@ -235,11 +248,81 @@
 
                 return (
                 <div className="space-y-6">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-800">Visão Geral das Minhas Contas</h2>
-                        <p className="text-sm text-slate-500">Acompanhamento consolidado da sua carteira de clientes.</p>
+                    {/* Header com Relógio */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800">Visão Geral das Minhas Contas</h2>
+                            <p className="text-sm text-slate-500">Acompanhamento consolidado da sua carteira de clientes.</p>
+                        </div>
+                        <div className="text-right bg-white px-5 py-3 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{fullDateStr}</p>
+                            <p className="text-3xl font-black text-slate-800 flex items-center gap-2 justify-end">
+                                <Clock size={24} className="text-blue-500"/>
+                                {brasiliaTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} 
+                                <span className="text-xs font-bold text-slate-400">BRT</span>
+                            </p>
+                        </div>
                     </div>
-                    
+
+                    {/* Alerta de 17h */}
+                    {showPixAlert && (
+                        <div className="bg-rose-50 border-l-4 border-rose-500 p-5 rounded-r-xl shadow-sm flex items-start gap-4 animate-pulse">
+                            <AlertCircle className="text-rose-500 shrink-0" size={28} />
+                            <div>
+                                <h4 className="text-base font-bold text-rose-800">ATENÇÃO: Conferência de PIX! (Horário Limite: 17h)</h4>
+                                <p className="text-sm text-rose-700 mt-1">Já passou das 17:00h no horário de Brasília e ainda há clientes que não tiveram o PIX confirmado hoje. Verifique a lista abaixo e marque os que já pagaram para fechar o caixa.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Checklist PIX do Dia */}
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><DollarSign className="text-emerald-500"/> Checklist de PIX - Hoje ({todayBSB})</h3>
+                            <span className="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded">{clientsNeedingPix.length} Lojas</span>
+                        </div>
+                        
+                        {clientsNeedingPix.length === 0 ? (
+                            <p className="text-sm text-slate-500 italic p-4 bg-slate-50 rounded-lg text-center">Nenhum PIX programado para a sua carteira hoje.</p>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {clientsNeedingPix.map(c => {
+                                    const finances = calculateFinances(c.investmentDetails.monthlyGoogle, c.investmentDetails.monthlyMeta);
+                                    const weeklyTotal = finances.weeklyGoogle + finances.weeklyMetaNet;
+                                    let installment = weeklyTotal; // Valor default é a semana inteira
+                                    
+                                    // Rateio da parcela
+                                    if (c.investmentDetails.pixFrequency === 'Diário') installment = weeklyTotal / 5;
+                                    else if (c.investmentDetails.pixDays?.length > 0) installment = weeklyTotal / c.investmentDetails.pixDays.length;
+
+                                    return (
+                                        <label key={c.id} className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors shadow-sm ${pixChecklist[c.id] ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-slate-200 hover:border-blue-300'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={!!pixChecklist[c.id]} 
+                                                    onChange={(e) => setPixChecklist({...pixChecklist, [c.id]: e.target.checked})}
+                                                    className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                />
+                                                <div>
+                                                    <p className={`text-sm font-bold ${pixChecklist[c.id] ? 'text-emerald-700 line-through opacity-70' : 'text-slate-800'}`}>{c.companyName}</p>
+                                                    <p className="text-[10px] text-slate-500 font-semibold">{c.investmentDetails.pixFrequency}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={`text-lg font-black ${pixChecklist[c.id] ? 'text-emerald-700 opacity-70' : 'text-blue-600'}`}>
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installment)}
+                                                </p>
+                                                <p className="text-[9px] uppercase text-slate-400 font-bold">Parcela do Dia</p>
+                                            </div>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Grid de Cards Menores */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
                             <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><DollarSign size={24} /></div>
@@ -267,28 +350,10 @@
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-slate-800 mb-4">Minha Evolução (Investimento vs Leads)</h3>
-                        <div className="h-72">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={mockPerformanceData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
-                                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
-                                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
-                                    <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}/>
-                                    <Legend />
-                                    <Line yAxisId="left" type="monotone" dataKey="leads" stroke="#8b5cf6" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} name="Leads" />
-                                    <Line yAxisId="right" type="monotone" dataKey="investimento" stroke="#3b82f6" strokeWidth={3} dot={{r: 4}} name="Investimento (R$)" />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
                             <h3 className="text-lg font-bold text-slate-800 mb-4">Atingimento de Metas (Leads)</h3>
-                            <div className="flex-1 min-h-[200px] relative flex flex-col items-center justify-center">
+                            <div className="flex-1 min-h-[250px] relative flex flex-col items-center justify-center">
                                 {activeClientsForGoals.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
@@ -297,7 +362,7 @@
                                                 cx="50%"
                                                 cy="50%"
                                                 innerRadius={60}
-                                                outerRadius={80}
+                                                outerRadius={90}
                                                 paddingAngle={5}
                                                 dataKey="value"
                                             >
@@ -310,14 +375,14 @@
                                         </PieChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <p className="text-slate-500 text-sm">Sem dados suficientes.</p>
+                                    <p className="text-slate-500 text-sm">Sem dados suficientes (Nenhuma loja em operação com metas).</p>
                                 )}
                             </div>
                         </div>
 
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                             <h3 className="text-lg font-bold text-slate-800 mb-4">Saúde da Minha Carteira</h3>
-                            <div className="space-y-4">
+                            <div className="space-y-6 mt-8">
                                 {['Satisfied', 'Neutral', 'Needs Attention'].map((status) => {
                                     const count = myClients.filter(c => c.satisfactionIndex === status).length;
                                     const percent = myClients.length ? (count / myClients.length) * 100 : 0;
@@ -328,10 +393,10 @@
                                         <div key={status}>
                                             <div className="flex justify-between text-sm mb-1">
                                                 <span className="font-medium text-slate-700">{labels[status]}</span>
-                                                <span className="text-slate-500">{count} contas ({percent.toFixed(0)}%)</span>
+                                                <span className="font-bold text-slate-800">{count} contas ({percent.toFixed(0)}%)</span>
                                             </div>
-                                            <div className="w-full bg-slate-100 rounded-full h-2">
-                                                <div className={`${colors[status]} h-2 rounded-full`} style={{ width: `${percent}%` }}></div>
+                                            <div className="w-full bg-slate-100 rounded-full h-3">
+                                                <div className={`${colors[status]} h-3 rounded-full transition-all duration-1000`} style={{ width: `${percent}%` }}></div>
                                             </div>
                                         </div>
                                     );
@@ -448,6 +513,29 @@
                 </div>
             );
 
+            const handleViewSavedReport = (client, savedReport) => {
+                setSelectedClient(null); 
+                setActiveTab('reports');
+                
+                setReportConfig({
+                    client: client.id.toString(),
+                    startDate: savedReport.startDate,
+                    endDate: savedReport.endDate,
+                    leadsManual: savedReport.stats.leads,
+                    cplManual: savedReport.stats.cpl,
+                    salesManual: savedReport.stats.sales,
+                    weeklyInvManual: savedReport.stats.weeklyInv || '',
+                    notesManual: savedReport.stats.notes,
+                    attachment: savedReport.stats.attachment
+                });
+
+                setGeneratedReport({
+                    ...client,
+                    reportPeriodStats: savedReport.stats
+                });
+                setIsReportSaved(true);
+            };
+
             const ReportsView = () => {
                 const handleClientChange = (e) => {
                     const clientId = e.target.value;
@@ -540,7 +628,7 @@
                                         <div><label className="block text-xs font-bold text-blue-800 mb-1">Total de Leads (Período)</label><input required type="number" min="0" value={reportConfig.leadsManual} onChange={e => setReportConfig({...reportConfig, leadsManual: e.target.value})} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-inner" /></div>
                                         <div><label className="block text-xs font-bold text-blue-800 mb-1">CPL Atual (R$)</label><input required type="number" min="0" step="0.01" value={reportConfig.cplManual} onChange={e => setReportConfig({...reportConfig, cplManual: e.target.value})} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-inner" /></div>
                                         <div><label className="block text-xs font-bold text-blue-800 mb-1">Vendas Fechadas</label><input required type="number" min="0" value={reportConfig.salesManual} onChange={e => setReportConfig({...reportConfig, salesManual: e.target.value})} className="w-full p-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-inner" /></div>
-                                        <div><label className="block text-xs font-bold text-emerald-600 mb-1">Invest. Semanal (R$)</label><input required type="number" min="0" step="0.01" value={reportConfig.weeklyInvManual} onChange={e => setReportConfig({...reportConfig, weeklyInvManual: e.target.value})} className="w-full p-2 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white shadow-inner" placeholder="Ex: Gasto da última semana" /></div>
+                                        <div><label className="block text-xs font-bold text-emerald-600 mb-1">Invest. Semanal Real (R$)</label><input required type="number" min="0" step="0.01" value={reportConfig.weeklyInvManual} onChange={e => setReportConfig({...reportConfig, weeklyInvManual: e.target.value})} className="w-full p-2 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white shadow-inner" placeholder="Ex: Gasto da última semana" /></div>
                                         <div className="md:col-span-4"><label className="block text-xs font-bold text-slate-600 mb-1">Observações do Gestor para a Diretoria</label><textarea value={reportConfig.notesManual} onChange={e => setReportConfig({...reportConfig, notesManual: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white min-h-[60px]" placeholder="Justificativas de oscilação, ações tomadas no mês..."></textarea></div>
                                         <div className="md:col-span-4 flex items-center gap-4 pt-2">
                                             <div>
@@ -735,7 +823,7 @@
                     });
                     
                     setClients(updatedClients);
-                    setLogFormData({ ...logFormData, note: '', attachment: null }); // Limpa form
+                    setLogFormData({ ...logFormData, note: '', attachment: null });
                 };
 
                 const handleLogAttachment = (e) => {
@@ -1031,6 +1119,25 @@
                                             <div><label className="block text-xs font-semibold text-slate-600 mb-1">Instagram</label><input type="text" value={formData.instagram} onChange={e => setFormData({...formData, instagram: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"/></div>
                                             <div><label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp Pré-Vendas</label><input type="text" value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none"/></div>
                                         </div>
+                                    </section>
+
+                                    <section>
+                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><Flag size={16} className="text-amber-500"/> Status Operacional</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-600 mb-1">Momento da Loja *</label>
+                                                <select required value={formData.storeStatus} onChange={e => setFormData({...formData, storeStatus: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                                    <option value="Aberto">Em Operação (Ativa)</option><option value="Em Inauguração">Em Inauguração (Aquecimento)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        {formData.storeStatus === 'Em Inauguração' && (
+                                            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div><label className="block text-xs font-bold text-amber-800 mb-1">Início - Fase 1 (Reconhecimento)</label><input type="date" value={formData.awarenessStartDate} onChange={e => setFormData({...formData, awarenessStartDate: e.target.value})} className="w-full p-2.5 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" /></div>
+                                                <div><label className="block text-xs font-bold text-amber-800 mb-1">Início - Fase 2 (Captação Leads)</label><input type="date" value={formData.performanceStartDate} onChange={e => setFormData({...formData, performanceStartDate: e.target.value})} className="w-full p-2.5 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" /></div>
+                                                <div><label className="block text-xs font-bold text-amber-800 mb-1">Data da Inauguração</label><input type="date" value={formData.inaugurationDate} onChange={e => setFormData({...formData, inaugurationDate: e.target.value})} className="w-full p-2.5 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" /></div>
+                                            </div>
+                                        )}
                                     </section>
                                     
                                     <section>
